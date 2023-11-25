@@ -18,26 +18,23 @@
 
 
 function[] = run_CellSegm(file_dir, percentage, pixel_size)
-%data_dir = '/home/hrchen/Documents/Research/hubmap/data/img'
-% img_name = "HBM836.WNJS.587"
-% file_name = "random_gaussian_0"
-%file_dir = '/data/hubmap/data/MIBI/extracted/Point1';
+
 a = file_dir;
 p = str2num(percentage);
 z = str2num(pixel_size);
 minCell = 10*1000/z*p/100;
 maxCell = 40*1000/z*p/100;
-addpath('/home/hrchen/Documents/Research/github/3DCellComposer/segmentation_2D/CellSegm');
 addpath(a);
 
+b = pwd;
+[parentDir, ~, ~] = fileparts(b);
+addpath(parentDir);
+
+
 % load the data
-% load ../data/surfstain_and_nucleus_3D.mat
 imnucl = double(read(Tiff('nucleus.tif')));
 imsegm = double(read(Tiff('membrane.tif')));
 
-% plane = 5;
-% imsegm = imsegm(:,:,plane);
-% imnucl = imnucl(:,:,plane);
 
 % Smoothing
 prm.smooothim.method = 'dirced';
@@ -65,11 +62,6 @@ imsegm = imfilter(imsegm1,filt) - imfilter(imnucl,filt);
     cellsegm.segmsurf(imsegm,minCell,maxCell,'imnucleus',imnucl,'prm',prm);
 
 
-%
-% cellsegm.show(imsegm,1);title('Surface stain');axis off;
-% cellsegm.show(imnucl,2);title('Nucleus stain');axis off;
-% cellsegm.show(minima,3);title('Markers');axis off;
-% cellsegm.show(wat,4);title('Watershed image');axis off;
-% cellsegm.show(cellbw,5);title('Cell segmentation');axis off;
+
 imwrite(uint8(cellbw), strcat(a, filesep, 'mask_CellSegm.png'));
 end
