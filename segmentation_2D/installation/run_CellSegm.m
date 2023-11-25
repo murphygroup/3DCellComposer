@@ -63,5 +63,5 @@ imsegm = imfilter(imsegm1,filt) - imfilter(imnucl,filt);
 
 
 
-imwrite(uint8(cellbw), strcat(a, filesep, 'mask_CellSegm.png'));
+imwrite(uint8(cellbw), strcat(a, filesep, 'cell_mask_CellSegm.png'));
 end
