@@ -1,6 +1,6 @@
 #!/bin/bash
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-python_script="$script_dir/Cellpose-2.2.2_wrapper.py"
+python_script="$script_dir/wrapper/Cellpose-2.2.2_wrapper.py"
 
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate Cellpose-2.2.2

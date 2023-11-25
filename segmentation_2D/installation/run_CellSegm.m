@@ -17,7 +17,7 @@
 %   =======================================================================================
 
 
-function[] = run_cellsegm(file_dir, percentage, pixel_size)
+function[] = run_CellSegm(file_dir, percentage, pixel_size)
 %data_dir = '/home/hrchen/Documents/Research/hubmap/data/img'
 % img_name = "HBM836.WNJS.587"
 % file_name = "random_gaussian_0"
@@ -27,7 +27,7 @@ p = str2num(percentage);
 z = str2num(pixel_size);
 minCell = 10*1000/z*p/100;
 maxCell = 40*1000/z*p/100;
-addpath('/home/haoranch/projects/HuBMAP/cellsegm');
+addpath('/home/hrchen/Documents/Research/github/3DCellComposer/segmentation_2D/CellSegm');
 addpath(a);
 
 % load the data
@@ -71,5 +71,5 @@ imsegm = imfilter(imsegm1,filt) - imfilter(imnucl,filt);
 % cellsegm.show(minima,3);title('Markers');axis off;
 % cellsegm.show(wat,4);title('Watershed image');axis off;
 % cellsegm.show(cellbw,5);title('Cell segmentation');axis off;
-imwrite(uint8(cellbw), strcat(a, filesep, 'mask_cellsegm.png'));
+imwrite(uint8(cellbw), strcat(a, filesep, 'mask_CellSegm.png'));
 end
