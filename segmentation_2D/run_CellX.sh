@@ -1,5 +1,5 @@
 #!/bin/bash
-rm $1/*CellX*
+
 cd /home/haoranch/projects/HuBMAP/2D-3D/script/CellX
 bash get_xml.sh $1 $2 $3
 matlab -nodesktop -r "run_CellX $1; quit"

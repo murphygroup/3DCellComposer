@@ -59,8 +59,8 @@ seg = remove_small_objects(bw_merge>0, min_size=minArea, connectivity=1, in_plac
 seg = np.squeeze(seg, axis=0)
 final_seg = label(seg * 1, background=0, connectivity=2)
 
-imsave(join(file_dir, 'mask_ACSS_classic.png'), final_seg)
-pickle.dump(final_seg, bz2.BZ2File(join(file_dir, 'mask_ACSS_classic.pkl'), 'w'))
+imsave(join(file_dir, 'cell_mask_ACSS_classic.png'), final_seg)
+pickle.dump(final_seg, bz2.BZ2File(join(file_dir, 'cell_mask_ACSS_classic.pkl'), 'w'))
 
 
 
