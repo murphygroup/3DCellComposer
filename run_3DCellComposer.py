@@ -67,9 +67,10 @@ def process_segmentation_masks(cell_mask_all_axes,
 		quality_score_JI.append(quality_score)
 	best_quality_score = max(quality_score_JI)
 	best_JI = quality_score_JI.index(best_quality_score)
+	best_cell_mask = final_matched_3D_cell_mask_JI[best_JI]
+	best_nuclear_mask = final_matched_3D_nuclear_mask_JI[best_JI]
 	
-	
-	return best_quality_score, best_JI
+	return best_quality_score, best_cell_mask, best_nuclear_mask
 
 def main():
 	parser = argparse.ArgumentParser(description="3DCellComposer Image Processor")
@@ -82,7 +83,7 @@ def main():
 	                    help="A list of cell membrane marker(s) in multiplexed image as input for segmentation")
 	parser.add_argument("--segmentation_method", type=str, choices=["deepcell", "compare", "custom"],
 	                    default="deepcell",
-	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, 'compare' to compare and select the best among 6 methods, or 'custom' to use a user-provided method.")
+	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, 'compare' to compare and select the best among 7 methods, or 'custom' to use a user-provided method.")
 	
 	args = parser.parse_args()
 	# Process the image
@@ -113,15 +114,15 @@ def main():
 				cell_mask_all_axes[axis] = cell_mask_axis
 				nuclear_mask_all_axes[axis] = nuclear_mask_axis
 				
-		best_quality_score = process_segmentation_masks(cell_mask_all_axes,
-		                                                nuclear_mask_all_axes,
-		                                                nucleus_channel,
-		                                                cytoplasm_channel,
-		                                                membrane_channel,
-		                                                image,
-		                                                voxel_size)
+		quality_score, cell_mask_final, nuclear_mask_final = process_segmentation_masks(cell_mask_all_axes,
+		                                                                                nuclear_mask_all_axes,
+		                                                                                nucleus_channel,
+		                                                                                cytoplasm_channel,
+		                                                                                membrane_channel,
+		                                                                                image,
+		                                                                                voxel_size)
 
-		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
+		print(f"Quality Score of this 3D Cell Segmentation = {quality_score}")
 	
 	
 	elif args.segmentation_method == "compare":
@@ -138,25 +139,34 @@ def main():
 		split_slices(os.path.dirname(args.image_path))
 		# split_slices(os.path.dirname("./data/3D_IMC_image.ome.tiff"))
 		quality_score_list = list()
+		cell_mask_final_list = list()
+		nuclear_mask_final_list = list()
 		for method in all_methods:
 			# method = 'CellProfiler'
-			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname("./data/3D_IMC_image.ome.tiff"))
-			method_quality_score = process_segmentation_masks(cell_mask_all_axes,
-		                                                nuclear_mask_all_axes,
-		                                                nucleus_channel,
-		                                                cytoplasm_channel,
-		                                                membrane_channel,
-		                                                image,
-		                                                voxel_size)
+			# voxel_size = ('1','1','2')
+			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname("./data/3D_IMC_image.ome.tiff"), voxel_size)
+			method_quality_score, method_cell_mask_final, method_nuclear_mask_final = process_segmentation_masks(
+				cell_mask_all_axes,
+				nuclear_mask_all_axes,
+				nucleus_channel,
+				cytoplasm_channel,
+				membrane_channel,
+				image,
+				voxel_size)
 			quality_score_list.append(method_quality_score)
+			cell_mask_final_list.append(method_cell_mask_final)
+			nuclear_mask_final_list.append(method_nuclear_mask_final)
+			
 		best_quality_score = max(quality_score_list)
-		best_method = all_methods[quality_score_list.index(best_quality_score)]
-		
+		best_quality_score_index = quality_score_list.index(best_quality_score)
+		best_method = all_methods[best_quality_score_index]
+		best_cell_mask_final = cell_mask_final_list[best_quality_score_index]
+		best_nuclear_mask_final = nuclear_mask_final_list[best_quality_score_index]
+
 	
 	print("Generating surface meshes for visualization in Blender..")
-	final_matched_3D_cell_mask = final_matched_3D_cell_mask_JI[best_JI]
-	final_matched_3D_cell_mask_colored, number_of_colors = coloring_3D(final_matched_3D_cell_mask)
-	meshing_3D(final_matched_3D_cell_mask, final_matched_3D_cell_mask_colored, number_of_colors)
+	best_cell_mask_final_colored, number_of_colors = coloring_3D(best_cell_mask_final)
+	meshing_3D(best_cell_mask_final, best_cell_mask_final_colored, number_of_colors)
 
 	print("3D Segmentation and Evaluation Completed.")
 
