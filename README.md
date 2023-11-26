@@ -24,7 +24,7 @@ The `3DCellComposer` script processes multiplexed imaging data for cell segmenta
 The script is executed with the following structure:
 
 ```bash
-python run_3DCellComposer.py [image_path] [nucleus_markers] [cytoplasm_markers] [membrane_markers]
+python run_3DCellComposer.py [image_path] [nucleus_markers] [cytoplasm_markers] [membrane_markers] [--segmentation_method]
 ```
 ### Detailed Input Description
 
@@ -47,12 +47,21 @@ python run_3DCellComposer.py [image_path] [nucleus_markers] [cytoplasm_markers] 
    - **Description**: A list of cell membrane marker(s) used in the multiplexed image for segmentation.
    - **Format**: Similar to the nucleus and cytoplasm channel marker lists.
    - **Example**: `"Gd160,Dy162"`
+   
+5. **Segmentation Method (Optional)**:
+   - **Description**: Choose the 2D segmentation method.
+   - **Format**: String (one of "deepcell", "compare", "custom")
+   - **Default**: "deepcell"
+   - **Options**:
+      - "deepcell" - Uses DeepCell segmentation, which performed the best in our evaluation.
+      - "compare" - Compares and selects the best method among 7 different methods.
+      - "custom" - Uses a user-provided segmentation method. An empty wrapper is provided.
 
 ### Example Command
 Here is an example of a complete command using the `3DCellComposer` script:
 
 ```bash
-python run_3DCellComposer.py /data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162"
+python run_3DCellComposer.py /data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell"
 ```
 
 In this command, the script will process the image located at /data/3D_IMC_image.ome.tiff using Ir191 as the nuclear marker, In115, Y89, Tb159 as the cytoplasmic markers, and La139, Pr141, Eu151, Gd160, Dy162 as the cell membrane markers.
