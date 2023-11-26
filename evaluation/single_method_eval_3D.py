@@ -287,7 +287,14 @@ def get_quality_score(features, model):
 
 
 
-def seg_evaluation_3D(cell_matched_mask, nuclear_matched_mask, img_channels, nucleus, cytoplasm, membrane, pca_dir):
+def seg_evaluation_3D(cell_matched_mask,
+                      nuclear_matched_mask,
+                      nucleus,
+                      cytoplasm,
+                      membrane,
+                      img_channels,
+                      voxel_size,
+                      pca_dir):
 
 	
 	cell_outside_nucleus_mask = cell_matched_mask - nuclear_matched_mask
@@ -327,9 +334,9 @@ def seg_evaluation_3D(cell_matched_mask, nuclear_matched_mask, img_channels, nuc
 			mask_binary = np.sign(current_mask)
 			metrics[channel_names[channel]] = {}
 			if channel_names[channel] == "Matched Cell":
-				voxel_size = 1 * 1 * 2
+				voxel_volume = float(voxel_size[0]) * float(voxel_size[1]) * float(voxel_size[2])
 				pixel_num = mask_binary.shape[0] * mask_binary.shape[1] * mask_binary.shape[2]
-				micron_num = voxel_size * pixel_num
+				micron_num = voxel_volume * pixel_num
 	
 				# TODO: match 3D cell and nuclei and calculate the fraction of match, assume cell and nuclei are matched for now
 	
@@ -341,7 +348,7 @@ def seg_evaluation_3D(cell_matched_mask, nuclear_matched_mask, img_channels, nuc
 				# calculate the standard deviation of cell size
 				cell_size_CV, cell_sizes_voxels = cell_size_uniformity(current_mask)
 				
-				cell_sizes_microns = [size * voxel_size for size in cell_sizes_voxels]
+				cell_sizes_microns = [size * voxel_volume for size in cell_sizes_voxels]
 				weighted_avg_microns = sum(size * size for size in cell_sizes_microns) / sum(cell_sizes_microns)
 				
 				# get coverage metrics

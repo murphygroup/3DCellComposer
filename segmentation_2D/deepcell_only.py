@@ -2,27 +2,26 @@ from deepcell.applications import Mesmer
 import numpy as np
 
 
-def deepcell_segmentation_2D(im1, im2, axis):
+def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	z_slice_num = im1.shape[0]
 	
 	if axis == 'XY':
-		pass
-		pixel_size = 1
+		pixel_size = float(voxel_size[0])
 	elif axis == 'XZ':
 		im1 = np.rot90(im1, k=1, axes=(2, 0))
 		im2 = np.rot90(im2, k=1, axes=(2, 0))
-		pixel_size = 2
+		pixel_size = float(voxel_size[2])
 	elif axis == 'YZ':
 		im1 = np.rot90(im1, k=1, axes=(1, 0))
 		im2 = np.rot90(im2, k=1, axes=(1, 0))
-		pixel_size = 2
+		pixel_size = float(voxel_size[2])
 	
 	im = np.stack((im1, im2), axis=-1)
 	
 	if axis == 'XY':
 		pass
 	elif axis == 'XZ':
-		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2]-300, im.shape[3]))
+		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2]-300, im.shape[3])) # patch for DL network
 		im = np.dstack((im, im_zeros))
 	elif axis == 'YZ':
 		im_zeros = np.zeros((im.shape[0], im.shape[2]-im.shape[1]-300, im.shape[2], im.shape[3]))

@@ -70,7 +70,7 @@ def split_slices(img_dir):
 				save_dir = join(slice_dir, img_name + '.tif')
 				imsave(save_dir, img_slice.astype(np.uint16))
 					
-def segmentation_single_method(method, img_path):
+def segmentation_single_method(method, img_path, voxel_size):
 	current_dir = os.getcwd()
 	run_file = f'run_{method}.sh'
 	if method in ['DeepCell-0.12.6_membrane', 'DeepCell-0.12.6_cytoplasm', 'Cellpose-2.2.2']:
@@ -80,9 +80,9 @@ def segmentation_single_method(method, img_path):
 		for axis in axes:
 			slice_paths = sorted(glob.glob(f'{img_path}/slices/slice_{axis}*', recursive=True))
 			if axis == 'XY':
-				pixel_size = '1000'
+				pixel_size = str(float(voxel_size[0]) * 1000)
 			else:
-				pixel_size = '2000'
+				pixel_size = str(float(voxel_size[2]) * 1000)
 			downsample_percentage = '100' # no downsample perturbation introduced
 			for slice_path in slice_paths[:1]:
 				print(slice_path, pixel_size)

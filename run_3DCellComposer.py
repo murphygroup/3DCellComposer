@@ -2,9 +2,11 @@ import os.path
 import argparse
 import numpy as np
 
-from segmentation_2D.preprocessing import write_IMC_input_channels
+from segmentation_2D.preprocessing import *
 from segmentation_2D.deepcell_only import deepcell_segmentation_2D
-from segmentation_2D.custom_segmentation_wrapper import custom_segmentation
+from segmentation_2D.wrapper.custom_segmentation_wrapper import custom_segmentation
+from segmentation_2D.installation.install_all_methods import install_segmentation_methods
+from segmentation_2D.all_methods_segmentation import *
 from segmentation_3D.match_2D_cells import matching_cells_2D
 from segmentation_3D.match_3D_cells import matching_cells_3D
 from segmentation_3D.match_3D_nuclei import matching_nuclei_3D
@@ -20,7 +22,8 @@ def process_segmentation_masks(cell_mask_all_axes,
 		                       nucleus_channel,
 		                       cytoplasm_channel,
 		                       membrane_channel,
-                               image):
+                               image,
+                               voxel_size):
 	print("Matching 2D cells in adjacent slices for each axis...")
 	matched_2D_stack_all_JI = {}
 	for JI in np.arange(0, 0.8, 0.1):
@@ -55,16 +58,16 @@ def process_segmentation_masks(cell_mask_all_axes,
 		final_matched_3D_nuclear_mask = final_matched_3D_nuclear_mask_JI[JI]
 		quality_score = seg_evaluation_3D(final_matched_3D_cell_mask,
 		                                  final_matched_3D_nuclear_mask,
-		                                  image,
 		                                  nucleus_channel,
 		                                  cytoplasm_channel,
 		                                  membrane_channel,
+		                                  image,
+		                                  voxel_size,
 		                                  f'{os.path.dirname(os.path.dirname(args.image_path))}/evaluation/model')
 		quality_score_JI.append(quality_score)
 	best_quality_score = max(quality_score_JI)
 	best_JI = quality_score_JI.index(best_quality_score)
 	
-	print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
 	
 	return best_quality_score, best_JI
 
@@ -88,6 +91,7 @@ def main():
 																						   args.nucleus_channel_marker_list,
 																						   args.cytoplasm_channel_marker_list,
 																						   args.membrane_channel_marker_list)
+	voxel_size = extract_voxel_size_from_tiff(args.image_path)
 	
 	print("Segmenting every 2D slices across three axes...")
 	if args.segmentation_method in ["deepcell", "custom"]:
@@ -96,15 +100,16 @@ def main():
 			cell_mask_all_axes = {}
 			nuclear_mask_all_axes = {}
 			for axis in ['XY', 'XZ', 'YZ']:
-				cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis)
+				cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis, voxel_size)
 				cell_mask_all_axes[axis] = cell_mask_axis
 				nuclear_mask_all_axes[axis] = nuclear_mask_axis
+			
 	
 		elif args.segmentation_method == "custom":
 			cell_mask_all_axes = {}
 			nuclear_mask_all_axes = {}
 			for axis in ['XY', 'XZ', 'YZ']:
-				cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_channel, cytoplasm_channel, membrane_channel, axis)
+				cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_channel, cytoplasm_channel, membrane_channel, axis, voxel_size)
 				cell_mask_all_axes[axis] = cell_mask_axis
 				nuclear_mask_all_axes[axis] = nuclear_mask_axis
 				
@@ -113,21 +118,40 @@ def main():
 		                                                nucleus_channel,
 		                                                cytoplasm_channel,
 		                                                membrane_channel,
-		                                                image)
+		                                                image,
+		                                                voxel_size)
+
+		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
+	
 	
 	elif args.segmentation_method == "compare":
 		# For comparing multiple methods
-		all_methods = []
-		install_all_methods()
+		print('installing all methods, it may take some time...')
+		all_methods = ['DeepCell-0.12.6_membrane',
+		               'DeepCell-0.12.6_cytoplasm',
+		               'Cellpose-2.2.2',
+		               'CellProfiler',
+		               'ACSS_classic',
+		               'CellX',
+		               'CellSegm']
+		install_segmentation_methods()
+		split_slices(os.path.dirname(args.image_path))
+		# split_slices(os.path.dirname("./data/3D_IMC_image.ome.tiff"))
 		quality_score_list = list()
 		for method in all_methods:
-			cell_mask_all_axes, nuclear_mask_all_axes = all_methods_segmentation(nucleus_channel, cytoplasm_channel, membrane_channel)
-			method_quality_score = process_segmentation_masks(cell_mask_all_axes, nuclear_mask_all_axes)
+			# method = 'CellProfiler'
+			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname("./data/3D_IMC_image.ome.tiff"))
+			method_quality_score = process_segmentation_masks(cell_mask_all_axes,
+		                                                nuclear_mask_all_axes,
+		                                                nucleus_channel,
+		                                                cytoplasm_channel,
+		                                                membrane_channel,
+		                                                image,
+		                                                voxel_size)
 			quality_score_list.append(method_quality_score)
 		best_quality_score = max(quality_score_list)
 		best_method = all_methods[quality_score_list.index(best_quality_score)]
-			
-	
+		
 	
 	print("Generating surface meshes for visualization in Blender..")
 	final_matched_3D_cell_mask = final_matched_3D_cell_mask_JI[best_JI]
