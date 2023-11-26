@@ -30,22 +30,21 @@ def extract_voxel_size_from_tiff(file_path):
 
 def get_channel_names(img_dir):
     with tifffile.TiffFile(img_dir) as tif:
-        tif_tags = {}
-        for tag in tif.pages[0].tags.values():
-            name, value = tag.name, tag.value
-            tif_tags[name] = value
-    description = tif_tags['ImageDescription']
-    name_list = list()
-    for i in range(50):
-        channel_num = "Channel:0:" + str(i)
-        channel_anchor = description.find(channel_num)
-        channel_str = description[channel_anchor:channel_anchor + 80]
-        name_anchor = channel_str.find("Name")
-        name_str = channel_str[name_anchor + 6:name_anchor + 20]
-        channel_name = name_str[:name_str.find('"')]
-        if len(channel_name) > 0:
-            name_list.append(channel_name)
-    return name_list
+        # Get the ImageDescription which contains the XML metadata
+        description = tif.pages[0].tags['ImageDescription'].value
+
+    # Parse the XML metadata
+    root = ET.fromstring(description)
+
+    # Find all Channel elements and extract their names
+    channel_names = []
+    for elem in root.iter():
+        if 'Channel' in elem.tag:
+            name = elem.get('Name')
+            if name:
+                channel_names.append(name)
+
+    return channel_names
 
 
 def get_channel_intensity(marker_list, names, img):
