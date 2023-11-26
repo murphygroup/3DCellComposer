@@ -9,5 +9,6 @@ cd $repo_dir/$1
 rm seeding_00001.png
 rm membrane.tif_control.png
 rm final_contour1.png
+rm CellX_config.xml
 mv final_mask1.png cell_mask_CellX.png
 python $script_dir/wrapper/convert_to_indexed_image.py $repo_dir/$1 CellX

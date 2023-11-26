@@ -77,12 +77,12 @@ def segmentation_single_method(method, img_path, voxel_size):
 		subprocess.run([f'{current_dir}/segmentation_2D/{run_file}', img_path])
 	elif method in ['CellProfiler', 'ACSS_classic', 'CellX', 'CellSegm']:
 		axes = ['XY', 'XZ', 'YZ']
-		for axis in axes:
+		for axis in axes[:1]:
 			slice_paths = sorted(glob.glob(f'{img_path}/slices/slice_{axis}*', recursive=True))
 			if axis == 'XY':
-				pixel_size = str(float(voxel_size[0]) * 1000)
+				pixel_size = str(round(float(voxel_size[0])) * 1000)
 			else:
-				pixel_size = str(float(voxel_size[2]) * 1000)
+				pixel_size = str(round(float(voxel_size[2])) * 1000)
 			downsample_percentage = '100' # no downsample perturbation introduced
 			for slice_path in slice_paths[:1]:
 				print(slice_path, pixel_size)
