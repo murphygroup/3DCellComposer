@@ -1,7 +1,7 @@
 from skimage.io import imread, imsave
 import tifffile
 import os
-
+import numpy as np
 def get_channel_names(img_dir):
 	with tifffile.TiffFile(img_dir) as tif:
 		tif_tags = {}
@@ -48,7 +48,7 @@ def write_IMC_input_channels(img_dir, nucleus_channel_marker_list, cytoplasm_cha
 	membrane_channel = get_channel_intensity(membrane_channel_marker_list, channel_names, image)
 	
 	imsave(f'{os.path.dirname(img_dir)}/nucleus.tif', nucleus_channel)
-	imsave(f'{os.path.dirname(img_dir)}/cytoplasm.tif', nucleus_channel)
-	imsave(f'{os.path.dirname(img_dir)}/membrane.tif', nucleus_channel)
+	imsave(f'{os.path.dirname(img_dir)}/cytoplasm.tif', cytoplasm_channel)
+	imsave(f'{os.path.dirname(img_dir)}/membrane.tif', membrane_channel)
 	
 	return nucleus_channel, cytoplasm_channel, membrane_channel, image

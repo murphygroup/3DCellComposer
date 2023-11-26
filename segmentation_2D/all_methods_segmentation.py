@@ -38,7 +38,7 @@ def combine_slices(method, img_dir):
 			cell_mask_slice_pieces.append(cell_mask_slice)
 			nuclear_mask_slice_pieces.append(nuclear_mask_slice)
 		cell_mask_3D = np.stack(cell_mask_slice_pieces, axis=0)
-		nuclear_mask_3D = np.stack(nuclear_mask_3D, axis=0)
+		nuclear_mask_3D = np.stack(nuclear_mask_slice_pieces, axis=0)
 		
 		cell_mask_all_axes[axis] = cell_mask_3D
 		nuclear_mask_all_axes[axis] = nuclear_mask_3D
@@ -91,4 +91,7 @@ def segmentation_single_method(method, img_path):
 	return cell_mask_all_axes, nuclear_mask_all_axes
 			
 
-	
+test1 = pickle.load(bz2.BZ2File('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/mask_CellProfiler.pkl','r'))
+test2 = pickle.load(bz2.BZ2File('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/cell_mask_CellProfiler.pkl','r'))
+test1 = imread('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/membrane.tif')
+test2 = imread('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/membrane_local.tif')
