@@ -89,9 +89,3 @@ def segmentation_single_method(method, img_path, voxel_size):
 				subprocess.run([f'{current_dir}/segmentation_2D/{run_file}', slice_path, downsample_percentage, pixel_size])
 	cell_mask_all_axes, nuclear_mask_all_axes = combine_slices(method, img_path)
 	return cell_mask_all_axes, nuclear_mask_all_axes
-			
-
-test1 = pickle.load(bz2.BZ2File('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/mask_CellProfiler.pkl','r'))
-test2 = pickle.load(bz2.BZ2File('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/cell_mask_CellProfiler.pkl','r'))
-test1 = imread('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/membrane.tif')
-test2 = imread('/home/hrchen/Documents/Research/github/3DCellComposer/data/slices/slice_XY_0/membrane_local.tif')
