@@ -18,6 +18,7 @@ The `3DCellComposer` script processes multiplexed imaging data for cell segmenta
 - Clone this GitHub repository.
 - Install Conda, if not already installed.
 - Run `conda env create -f environment.yml`. This command will create a new Conda environment `3DCellComposer` and install all the necessary packages.
+- The software was tested on Ubuntu 18.04.5 LTS and Python 3.8.
 
 
 ### Command Structure
