@@ -419,6 +419,6 @@ def seg_evaluation_3D(cell_matched_mask,
 		metrics_pca = pca_model.transform(metrics_flat_z)
 		weighted_score = np.exp(sum(metrics_pca[0, i] * pca_model.explained_variance_ratio_[i] for i in range(2)))
 		
-		return weighted_score, metrics_flat
+		return weighted_score, metrics
 	
 
