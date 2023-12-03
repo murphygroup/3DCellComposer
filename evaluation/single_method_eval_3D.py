@@ -304,19 +304,23 @@ def seg_evaluation_3D(cell_matched_mask,
 	metric_mask = np.vstack((metric_mask, np.expand_dims(nuclear_matched_mask, 0)))
 	metric_mask = np.vstack((metric_mask, np.expand_dims(cell_outside_nucleus_mask, 0)))
 
-
-	img_input_channel = nucleus + cytoplasm + membrane
-	img_thresholded = np.stack([thresholding(slice_2d) for slice_2d in img_input_channel], axis=0)
-
-	img_thresholded = np.sign(img_thresholded)
-
-	img_binary_pieces = []
-	for z in range(img_thresholded.shape[0]):
-		img_binary_pieces.append(foreground_separation(img_thresholded[z]))
-	img_binary = np.stack(img_binary_pieces, axis=0)
-	img_binary = np.sign(img_binary)
-
-
+	if not os.path.exists(f'{pca_dir}/img_binary.pkl'):
+		img_input_channel = nucleus + cytoplasm + membrane
+		img_thresholded = np.stack([thresholding(slice_2d) for slice_2d in img_input_channel], axis=0)
+	
+		img_thresholded = np.sign(img_thresholded)
+	
+		img_binary_pieces = []
+		for z in range(img_thresholded.shape[0]):
+			img_binary_pieces.append(foreground_separation(img_thresholded[z]))
+		img_binary = np.stack(img_binary_pieces, axis=0)
+		img_binary = np.sign(img_binary)
+		with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'wb') as f:
+			pickle.dump(img_binary, f)
+	else:
+		with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'rb') as f:
+			img_binary = pickle.load(f)
+		
 	# set mask channel names
 	channel_names = [
 		"Matched Cell",
@@ -325,6 +329,7 @@ def seg_evaluation_3D(cell_matched_mask,
 	]
 	metrics = {}
 
+	# 3D IMC has dim order ZCXY
 	img_channels = np.transpose(img_channels, (1, 0, 2, 3))
 
 	if len(np.unique(cell_matched_mask))-1 > 10:
