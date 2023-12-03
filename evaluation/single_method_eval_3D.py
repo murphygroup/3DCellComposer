@@ -328,7 +328,7 @@ def seg_evaluation_3D(cell_matched_mask,
 	img_channels = np.transpose(img_channels, (1, 0, 2, 3))
 
 	if len(np.unique(cell_matched_mask))-1 > 10:
-		print(len(np.unique(cell_matched_mask)))
+		print(f'- {len(np.unique(cell_matched_mask))} 3D cells segmented')
 		for channel in range(metric_mask.shape[0]):
 			current_mask = metric_mask[channel]
 			mask_binary = np.sign(current_mask)
