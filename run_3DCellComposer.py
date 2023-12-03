@@ -3,6 +3,7 @@ import os.path
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
+import json
 
 from segmentation_2D.preprocessing import *
 from segmentation_2D.deepcell_only import deepcell_segmentation_2D
@@ -67,23 +68,26 @@ def process_segmentation_masks(cell_mask_all_axes,
 		print(f'For JI threshold = {JI}')
 		final_matched_3D_cell_mask = final_matched_3D_cell_mask_JI[JI]
 		final_matched_3D_nuclear_mask = final_matched_3D_nuclear_mask_JI[JI]
-		quality_score = seg_evaluation_3D(final_matched_3D_cell_mask,
-		                                  final_matched_3D_nuclear_mask,
-		                                  nucleus_channel,
-		                                  cytoplasm_channel,
-		                                  membrane_channel,
-		                                  image,
-		                                  voxel_size,
-		                                  './evaluation/model')
+		quality_score, metrics = seg_evaluation_3D(final_matched_3D_cell_mask,
+				                                   final_matched_3D_nuclear_mask,
+				                                   nucleus_channel,
+				                                   cytoplasm_channel,
+				                                   membrane_channel,
+				                                   image,
+				                                   voxel_size,
+				                                   './evaluation/model')
 		print(f'- quality score = {quality_score}')
 		quality_score_JI.append(quality_score)
+		metrics_JI.append(metrics)
+	
 	best_quality_score = max(quality_score_JI)
 	best_JI_index = quality_score_JI.index(best_quality_score)
 	best_JI = JI_range[best_JI_index]
+	best_metrics = metrics_JI[best_JI_index]
 	best_cell_mask = final_matched_3D_cell_mask_JI[best_JI]
 	best_nuclear_mask = final_matched_3D_nuclear_mask_JI[best_JI]
 	
-	return best_quality_score, best_cell_mask, best_nuclear_mask
+	return best_quality_score, best_metrics, best_cell_mask, best_nuclear_mask
 
 
 def main():
@@ -130,13 +134,14 @@ def main():
 				cell_mask_all_axes[axis] = cell_mask_axis
 				nuclear_mask_all_axes[axis] = nuclear_mask_axis
 		
-		quality_score, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(cell_mask_all_axes,
-		                                                                                          nuclear_mask_all_axes,
-		                                                                                          nucleus_channel,
-		                                                                                          cytoplasm_channel,
-		                                                                                          membrane_channel,
-		                                                                                          image,
-		                                                                                          voxel_size)
+		best_quality_score, best_metrics, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(
+			cell_mask_all_axes,
+			nuclear_mask_all_axes,
+			nucleus_channel,
+			cytoplasm_channel,
+			membrane_channel,
+			image,
+			voxel_size)
 		
 		print(f"Quality Score of this 3D Cell Segmentation = {quality_score}")
 	
@@ -154,12 +159,13 @@ def main():
 		install_segmentation_methods()
 		split_slices(os.path.dirname(args.image_path))
 		quality_score_list = list()
+		metrics_list = list()
 		cell_mask_final_list = list()
 		nuclear_mask_final_list = list()
 		for method in all_methods:
 			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname(
 				"./data/3D_IMC_image.ome.tiff"), voxel_size)
-			method_quality_score, method_cell_mask_final, method_nuclear_mask_final = process_segmentation_masks(
+			method_quality_score, method_metrics, method_cell_mask_final, method_nuclear_mask_final = process_segmentation_masks(
 				cell_mask_all_axes,
 				nuclear_mask_all_axes,
 				nucleus_channel,
@@ -168,19 +174,34 @@ def main():
 				image,
 				voxel_size)
 			quality_score_list.append(method_quality_score)
+			metrics_list.append(method_metrics)
 			cell_mask_final_list.append(method_cell_mask_final)
 			nuclear_mask_final_list.append(method_nuclear_mask_final)
 		
 		best_quality_score = max(quality_score_list)
 		best_quality_score_index = quality_score_list.index(best_quality_score)
+		best_metrics = metrics_list[best_quality_score_index]
 		best_method = all_methods[best_quality_score_index]
 		best_cell_mask_final = cell_mask_final_list[best_quality_score_index]
 		best_nuclear_mask_final = nuclear_mask_final_list[best_quality_score_index]
 		print(f'{best_method} yields the best segmentation.')
+		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
+	
+	results_path = f'{os.path.dirname(args.image_path)}/results'
+	if not os.path.exists(results_path):
+		os.makedirs(results_path)
 	
 	import tifffile
-	tifffile.imwrite('3D_cell_mask.tif', best_cell_mask_final)
-	tifffile.imwrite('3D_nuclear_mask.tif', best_nuclear_mask_final)
+	tifffile.imwrite(f'{results_path}/3D_cell_mask.tif', best_cell_mask_final)
+	tifffile.imwrite(f'{results_path}/3D_nuclear_mask.tif', best_nuclear_mask_final)
+	
+	metrics_path = f'{results_path}/metrics.json'
+	
+	with open(metrics_path, 'w') as f:
+		json.dump(best_metrics, f)
+	
+	quality_score_path = f'{results_path}/quality_score.txt'
+	np.savetxt(quality_score_path, [best_quality_score], fmt='%f')
 
 	print("Generating surface meshes for visualization in Blender..")
 	best_cell_mask_final_colored, number_of_colors = coloring_3D(best_cell_mask_final)
