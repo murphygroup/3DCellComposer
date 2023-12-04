@@ -12,21 +12,22 @@ print('GPU activated? %d'%use_GPU)
 
 file_dir = sys.argv[1]
 axis = sys.argv[2]
+voxel_size = sys.argv[3]
 
 
 im1 = imread(join(file_dir, 'cytoplasm.tif'))
 im2 = imread(join(file_dir, 'nucleus.tif'))
 if axis == 'XY':
-	pass
-	pixel_size = 0.1083
+	pixel_size = voxel_size[0]
+
 elif axis == 'XZ':
 	im1 = np.rot90(im1, k=1, axes=(2, 0))
 	im2 = np.rot90(im2, k=1, axes=(2, 0))
-	pixel_size = 0.29
+	pixel_size = voxel_size[2]
 elif axis == 'YZ':
 	im1 = np.rot90(im1, k=1, axes=(1, 0))
 	im2 = np.rot90(im2, k=1, axes=(1, 0))
-	pixel_size = 0.29
+	pixel_size = voxel_size[2]
 	
 pixel_size_ratio = pixel_size / 1
 im = np.stack((im1, im2))
