@@ -31,7 +31,7 @@ def process_segmentation_masks(cell_mask_all_axes,
                                image,
                                voxel_size):
 	min_JI = 0.0
-	max_JI = 0.3
+	max_JI = 0.4
 	JI_search_interval = 0.1
 	num_steps = int((max_JI - min_JI) / JI_search_interval) + 1
 	JI_range = np.linspace(min_JI, max_JI, num_steps)
@@ -144,7 +144,7 @@ def main():
 			image,
 			voxel_size)
 		
-		print(f"Quality Score of this 3D Cell Segmentation = {quality_score}")
+		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
 	
 	
 	elif args.segmentation_method == "compare":
