@@ -74,10 +74,10 @@ def segmentation_single_method(method, img_path, voxel_size):
 	current_dir = os.getcwd()
 	run_file = f'run_{method}.sh'
 	if method in ['DeepCell-0.12.6_membrane', 'DeepCell-0.12.6_cytoplasm', 'Cellpose-2.2.2']:
-		subprocess.run([f'{current_dir}/segmentation_2D/{run_file}', img_path])
+		subprocess.run([f'{current_dir}/segmentation_2D/{run_file}', img_path, voxel_size])
 	elif method in ['CellProfiler', 'ACSS_classic', 'CellX', 'CellSegm']:
 		axes = ['XY', 'XZ', 'YZ']
-		for axis in axes[:1]:
+		for axis in axes:
 			slice_paths = sorted(glob.glob(f'{img_path}/slices/slice_{axis}*', recursive=True))
 			if axis == 'XY':
 				pixel_size = str(round(float(voxel_size[0])) * 1000)
