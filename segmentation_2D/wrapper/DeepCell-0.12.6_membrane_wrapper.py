@@ -22,15 +22,15 @@ z_slice_num = im1.shape[0]
 
 if axis == 'XY':
 	pass
-	pixel_size = voxel_size[0]
+	pixel_size = float(voxel_size[0])
 elif axis == 'XZ':
 	im1 = np.rot90(im1, k=1, axes=(2, 0))
 	im2 = np.rot90(im2, k=1, axes=(2, 0))
-	pixel_size = voxel_size[2]
+	pixel_size = float(voxel_size[2])
 elif axis == 'YZ':
 	im1 = np.rot90(im1, k=1, axes=(1, 0))
 	im2 = np.rot90(im2, k=1, axes=(1, 0))
-	pixel_size = voxel_size[2]
+	pixel_size = float(voxel_size[2])
 
 im = np.stack((im1, im2), axis=-1)
 
