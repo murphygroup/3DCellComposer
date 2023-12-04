@@ -31,7 +31,7 @@ def process_segmentation_masks(cell_mask_all_axes,
                                image,
                                voxel_size):
 	min_JI = 0.0
-	max_JI = 0.5
+	max_JI = 0.3
 	JI_search_interval = 0.1
 	num_steps = int((max_JI - min_JI) / JI_search_interval) + 1
 	JI_range = np.linspace(min_JI, max_JI, num_steps)
@@ -64,6 +64,7 @@ def process_segmentation_masks(cell_mask_all_axes,
 	
 	print("Evaluating 3D cell segmentation...")
 	quality_score_JI = list()
+	metrics_JI = list()
 	for JI in JI_range:
 		print(f'For JI threshold = {JI}')
 		final_matched_3D_cell_mask = final_matched_3D_cell_mask_JI[JI]
