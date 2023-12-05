@@ -23,9 +23,11 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	elif axis == 'XZ':
 		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2]-300, im.shape[3])) # patch for DL network
 		im = np.dstack((im, im_zeros))
+		print(im.shape)
 	elif axis == 'YZ':
 		im_zeros = np.zeros((im.shape[0], im.shape[2]-im.shape[1]-300, im.shape[2], im.shape[3]))
 		im = np.hstack((im, im_zeros))
+		print(im.shape)
 	
 	
 	from tensorflow.compat.v1 import ConfigProto
@@ -41,6 +43,7 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	
 	for i in range(len(im)):
 		print(f'Segmenting slice {i}')
+		print(tf.__version__)
 		if i == 0:
 			labeled_image = app.predict(np.expand_dims(im[i], 0), image_mpp=pixel_size, compartment='both')
 		else:
