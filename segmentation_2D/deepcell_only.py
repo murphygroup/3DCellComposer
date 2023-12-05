@@ -23,11 +23,10 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	elif axis == 'XZ':
 		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2]-300, im.shape[3])) # patch for DL network
 		im = np.dstack((im, im_zeros))
-		print(im.shape)
 	elif axis == 'YZ':
 		im_zeros = np.zeros((im.shape[0], im.shape[2]-im.shape[1]-300, im.shape[2], im.shape[3]))
 		im = np.hstack((im, im_zeros))
-		print(im.shape)
+	print(im.shape)
 	
 	
 	from tensorflow.compat.v1 import ConfigProto
