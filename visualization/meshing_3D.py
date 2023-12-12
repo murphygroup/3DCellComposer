@@ -147,5 +147,5 @@ def meshing_3D(mask, mask_colored, num_of_col):
 	all_colors = np.vstack(all_colors)
 	
 	color_map = generate_color_map(num_of_col)
-	write_to_mtl(color_map, "./data/cell_mesh.mtl")
-	write_to_obj(all_verts, all_faces, all_groups, all_colors, "./data/cell_mesh.obj")
+	write_to_mtl(color_map, "./results/cell_mesh.mtl")
+	write_to_obj(all_verts, all_faces, all_groups, all_colors, "./results/cell_mesh.obj")
