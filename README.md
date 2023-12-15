@@ -1,7 +1,7 @@
 # 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen and Robert F. Murphy\
 Carnegie Mellon University\
-V1.0.0 Nov 17, 2023
+V1.1 Dec 14, 2023
 
 We introduce 3DCellComposer, a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose any existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
 
