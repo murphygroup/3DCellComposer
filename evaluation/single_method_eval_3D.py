@@ -18,6 +18,14 @@ import glob
 import pickle
 import bz2
 
+"""
+FUNCTIONS USED BY 3DCELLCOMPOSER TO CALCULATE SEGMENTATION EVALUATION 
+STATISTICS FOR A SINGLE 3D IMAGE AND CELL AND NUCLEAR MASKS
+Author: Haoran Chen
+Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
+         Modify KMeans section to avoid doing KMeans with n_clusters=1
+         Remove intermediate binary image file to avoid error in the next run
+"""
 
 
 def thresholding(img):
@@ -163,7 +171,6 @@ def cell_size_uniformity(mask):
 
 
 def cell_type(mask, channels):
-	label_list = []
 	n = len(channels)
 	cell_coord = get_indices_pandas(mask)[1:]
 	cell_coord_num = len(cell_coord)
@@ -184,7 +191,11 @@ def cell_type(mask, channels):
 		feature_matrix_z_pieces.append(cell_intensity_z)
 
 	feature_matrix_z = np.vstack(feature_matrix_z_pieces).T
-	for c in range(1, 11):
+	# v1.1 initialize label_list with all zeros for c=1 rather than
+	# calling KMeans with n_clusters=1 (sometimes fails)
+	label_list = []
+	label_list.append(np.zeros(cell_coord_num,dtype=int))
+	for c in range(2, 11):
 		model = KMeans(n_clusters=c).fit(feature_matrix_z)
 		label_list.append(model.labels_.astype(int))
 	return label_list
@@ -304,6 +315,7 @@ def seg_evaluation_3D(cell_matched_mask,
 	metric_mask = np.vstack((metric_mask, np.expand_dims(nuclear_matched_mask, 0)))
 	metric_mask = np.vstack((metric_mask, np.expand_dims(cell_outside_nucleus_mask, 0)))
 
+	# check img_binary for avoiding repeatedly calculating it
 	if not os.path.exists(f'{pca_dir}/img_binary.pkl'):
 		img_input_channel = nucleus + cytoplasm + membrane
 		img_thresholded = np.stack([thresholding(slice_2d) for slice_2d in img_input_channel], axis=0)
@@ -329,8 +341,8 @@ def seg_evaluation_3D(cell_matched_mask,
 	]
 	metrics = {}
 
-	# 3D IMC has dim order ZCXY
-	img_channels = np.transpose(img_channels, (1, 0, 2, 3))
+	# 3D IMC has dim order ZCYX
+	img_channels = np.transpose(img_channels, (1, 0, 2, 3)) #TODO: automatically detect dim order
 
 	if len(np.unique(cell_matched_mask))-1 > 10:
 		print(f'- {len(np.unique(cell_matched_mask))} 3D cells segmented')
@@ -418,6 +430,7 @@ def seg_evaluation_3D(cell_matched_mask,
 		metrics_flat_z = ss.transform(metrics_flat)
 		metrics_pca = pca_model.transform(metrics_flat_z)
 		weighted_score = np.exp(sum(metrics_pca[0, i] * pca_model.explained_variance_ratio_[i] for i in range(2)))
+		os.remove(f'{pca_dir}/img_binary.pkl')
 		
 		return weighted_score, metrics
 	

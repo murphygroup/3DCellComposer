@@ -1,6 +1,12 @@
 from deepcell.applications import Mesmer
 import numpy as np
 
+"""
+WRAPPER TO PERFORM 2D SEGMENTATIONS ALONG ALL AXES USING DEEPCELL
+Author: Haoran Chen
+Version: 1.1 December 14, 2023 R.F.Murphy
+        Modify dimensions of the XZ and YZ to fully pad z with zeros  
+"""
 
 def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	z_slice_num = im1.shape[0]
@@ -21,10 +27,12 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	if axis == 'XY':
 		pass
 	elif axis == 'XZ':
-		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2]-300, im.shape[3])) # patch for DL network
+		# v1.0 300 was subtracted for XZ and YZ padding for faster running
+		# v1.1 fully padded z for generalizability
+		im_zeros = np.zeros((im.shape[0], im.shape[1], im.shape[0]-im.shape[2], im.shape[3])) # patch for DL network
 		im = np.dstack((im, im_zeros))
 	elif axis == 'YZ':
-		im_zeros = np.zeros((im.shape[0], im.shape[2]-im.shape[1]-300, im.shape[2], im.shape[3]))
+		im_zeros = np.zeros((im.shape[0], im.shape[2]-im.shape[1], im.shape[2], im.shape[3]))
 		im = np.hstack((im, im_zeros))
 	print(im.shape)
 	

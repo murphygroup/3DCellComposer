@@ -6,6 +6,13 @@ from skimage.io import imsave
 import pandas as pd
 import colorsys
 
+"""
+WRAPPER TO GENERATE BLENDER FILES FOR VISUALIZATION
+Author: Haoran Chen
+Version: 1.1 December 14, 2023 Haoran Chen
+        Fix output dir and update color map to 0-1
+"""
+
 
 def write_to_mtl(materials, filename):
 	with open(filename, 'w') as f:
@@ -77,14 +84,13 @@ def generate_color_map(number_of_colors):
 		hue = (i - 1) * step
 		# Convert HSL to RGB. Saturation and Lightness are set to 0.5 (50%) for vivid colors
 		rgb_color = colorsys.hls_to_rgb(hue / 360, 0.5, 0.5)
-		# Convert RGB from 0-1 range to 0-255 range and store in the dictionary
-		color_map[i] = tuple(int(c * 255) for c in rgb_color)
-
+		color_map[i] = rgb_color
+	
 	return color_map
 
 
 
-def meshing_3D(mask, mask_colored, num_of_col):
+def meshing_3D(mask, mask_colored, num_of_col, output_path):
 
 	cell_coords = get_indices_pandas(mask)[1:]
 	
@@ -147,5 +153,5 @@ def meshing_3D(mask, mask_colored, num_of_col):
 	all_colors = np.vstack(all_colors)
 	
 	color_map = generate_color_map(num_of_col)
-	write_to_mtl(color_map, "./results/cell_mesh.mtl")
-	write_to_obj(all_verts, all_faces, all_groups, all_colors, "./results/cell_mesh.obj")
+	write_to_mtl(color_map, f'{output_path}/cell_mesh.mtl')
+	write_to_obj(all_verts, all_faces, all_groups, all_colors, f'{output_path}/data/results/cell_mesh.obj')

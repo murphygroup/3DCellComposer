@@ -17,7 +17,15 @@ from evaluation.single_method_eval_3D import seg_evaluation_3D
 from visualization.coloring_3D import coloring_3D
 from visualization.meshing_3D import meshing_3D
 
-
+"""
+3DCellComposer MAIN PROGRAM
+Author: Haoran Chen and Robert F. Murphy
+Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
+        Fixes in
+        deepcell_only.py
+        single_method_eval_3D.py
+        meshing_3D.py
+"""
 
 def parse_marker_list(arg):
 	return arg.split(',')
@@ -106,6 +114,7 @@ def main():
 	
 	args = parser.parse_args()
 	# Process the image
+	print("3DCellComposer v1.1")
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(args.image_path,
 	                                                                                       args.nucleus_channel_marker_list,
@@ -164,8 +173,7 @@ def main():
 		cell_mask_final_list = list()
 		nuclear_mask_final_list = list()
 		for method in all_methods:
-			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname(
-				"./data/3D_IMC_image.ome.tiff"), voxel_size)
+			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname(args.image_path), voxel_size)
 			method_quality_score, method_metrics, method_cell_mask_final, method_nuclear_mask_final = process_segmentation_masks(
 				cell_mask_all_axes,
 				nuclear_mask_all_axes,
@@ -206,7 +214,7 @@ def main():
 
 	print("Generating surface meshes for visualization in Blender..")
 	best_cell_mask_final_colored, number_of_colors = coloring_3D(best_cell_mask_final)
-	meshing_3D(best_cell_mask_final, best_cell_mask_final_colored, number_of_colors)
+	meshing_3D(best_cell_mask_final, best_cell_mask_final_colored, number_of_colors, results_path)
 	
 	print("3D Segmentation and Evaluation Completed.")
 
