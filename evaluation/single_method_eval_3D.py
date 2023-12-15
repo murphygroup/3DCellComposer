@@ -24,7 +24,7 @@ STATISTICS FOR A SINGLE 3D IMAGE AND CELL AND NUCLEAR MASKS
 Author: Haoran Chen
 Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
          Modify KMeans section to avoid doing KMeans with n_clusters=1
-         Remove intermediate binary image file to avoid error in the next run
+         Remove saving intermediate binary image file to avoid error in the next run
 """
 
 
@@ -315,23 +315,22 @@ def seg_evaluation_3D(cell_matched_mask,
 	metric_mask = np.vstack((metric_mask, np.expand_dims(nuclear_matched_mask, 0)))
 	metric_mask = np.vstack((metric_mask, np.expand_dims(cell_outside_nucleus_mask, 0)))
 
-	# check img_binary for avoiding repeatedly calculating it
-	if not os.path.exists(f'{pca_dir}/img_binary.pkl'):
-		img_input_channel = nucleus + cytoplasm + membrane
-		img_thresholded = np.stack([thresholding(slice_2d) for slice_2d in img_input_channel], axis=0)
-	
-		img_thresholded = np.sign(img_thresholded)
-	
-		img_binary_pieces = []
-		for z in range(img_thresholded.shape[0]):
-			img_binary_pieces.append(foreground_separation(img_thresholded[z]))
-		img_binary = np.stack(img_binary_pieces, axis=0)
-		img_binary = np.sign(img_binary)
-		with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'wb') as f:
-			pickle.dump(img_binary, f)
-	else:
-		with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'rb') as f:
-			img_binary = pickle.load(f)
+	# if not os.path.exists(f'{pca_dir}/img_binary.pkl'):
+	img_input_channel = nucleus + cytoplasm + membrane
+	img_thresholded = np.stack([thresholding(slice_2d) for slice_2d in img_input_channel], axis=0)
+
+	img_thresholded = np.sign(img_thresholded)
+
+	img_binary_pieces = []
+	for z in range(img_thresholded.shape[0]):
+		img_binary_pieces.append(foreground_separation(img_thresholded[z]))
+	img_binary = np.stack(img_binary_pieces, axis=0)
+	img_binary = np.sign(img_binary)
+	# with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'wb') as f:
+	# 	pickle.dump(img_binary, f)
+	# else:
+	# 	with bz2.BZ2File(f'{pca_dir}/img_binary.pkl', 'rb') as f:
+	# 		img_binary = pickle.load(f)
 		
 	# set mask channel names
 	channel_names = [
@@ -430,7 +429,6 @@ def seg_evaluation_3D(cell_matched_mask,
 		metrics_flat_z = ss.transform(metrics_flat)
 		metrics_pca = pca_model.transform(metrics_flat_z)
 		weighted_score = np.exp(sum(metrics_pca[0, i] * pca_model.explained_variance_ratio_[i] for i in range(2)))
-		os.remove(f'{pca_dir}/img_binary.pkl')
 		
 		return weighted_score, metrics
 	
