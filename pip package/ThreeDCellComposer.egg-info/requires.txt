@@ -1,0 +1,9 @@
+numpy
+matplotlib
+scipy
+skimage
+deepcell
+pandas
+CellSegmentationEvaluator
+colorsys
+random
