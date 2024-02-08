@@ -1,10 +1,8 @@
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from skimage.segmentation import find_boundaries
-import bz2
-import pickle 
+
 
 def get_compartments_diff(arr1, arr2):
 	a = set((tuple(i) for i in arr1))

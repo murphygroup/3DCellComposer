@@ -1,3 +1,24 @@
+Metadata-Version: 2.1
+Name: ThreeDCellComposer
+Version: 1.2.1
+Summary: 3D cell segmentation by composing 2D segmentations
+Home-page: https://github.com/murphylab/3DCellComposer/
+Author: Haoran Chen and Robert F. Murphy
+Author-email: murphy@cmu.edu
+License: MIT
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Topic :: Scientific/Engineering :: Bio-Informatics
+Classifier: Topic :: Scientific/Engineering :: Image Processing
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
 # 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen and Robert F. Murphy\
 Carnegie Mellon University\
