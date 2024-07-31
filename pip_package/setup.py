@@ -15,7 +15,7 @@ setup(
     author_email='murphy@cmu.edu',
     license='MIT',
     packages=['ThreeDCellComposer'],
-    install_requires=['numpy', 'matplotlib', 'scipy', 'skimage', 'deepcell', 'pandas', 'CellSegmentationEvaluator', 'colorsys', 'random'],
+    install_requires=['numpy', 'matplotlib', 'scipy', 'skimage', 'deepcell', 'pandas', 'CellSegmentationEvaluator'],
 
     classifiers=[
         'Development Status :: 5 - Production/Stable',
