@@ -127,10 +127,14 @@ def main():
 	else:
 		raise FileNotFoundError(f'Not a file or directory: {args.image_path}')
 
+	if not args.results_path.is_dir():
+		args.results_path.mkdir(exist_ok=True, parents=True)
+
 	# Process the image
 	print("3DCellComposer v1.1")
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
+																						   args.results_dir,
 	                                                                                       args.nucleus_channel_marker_list,
 	                                                                                       args.cytoplasm_channel_marker_list,
 	                                                                                       args.membrane_channel_marker_list)
@@ -210,9 +214,6 @@ def main():
 		print(f'{best_method} yields the best segmentation.')
 		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
 
-	if not args.results_path.is_dir():
-		args.results_path.mkdir(exist_ok=True, parents=True)
-	
 	import tifffile
 	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', best_cell_mask_final)
 	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', best_nuclear_mask_final)
