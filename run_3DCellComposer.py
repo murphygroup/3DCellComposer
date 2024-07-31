@@ -1,9 +1,11 @@
 import argparse
-import os.path
+from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 import json
+
+from ome_utils import find_ome_tiffs
 
 from segmentation_2D.preprocessing import *
 from segmentation_2D.deepcell_only import deepcell_segmentation_2D
@@ -101,7 +103,9 @@ def process_segmentation_masks(cell_mask_all_axes,
 
 def main():
 	parser = argparse.ArgumentParser(description="3DCellComposer Image Processor")
-	parser.add_argument("image_path", help="Path to the multiplexed image")
+	parser.add_argument("image_path",
+						help="Path to the multiplexed image, or directory containing one image",
+						type=Path)
 	parser.add_argument("nucleus_channel_marker_list", type=parse_marker_list,
 	                    help="A list of nuclear marker(s) in multiplexed image as input for segmentation")
 	parser.add_argument("cytoplasm_channel_marker_list", type=parse_marker_list,
@@ -111,16 +115,26 @@ def main():
 	parser.add_argument("--segmentation_method", type=str, choices=["deepcell", "compare", "custom"],
 	                    default="deepcell",
 	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, 'compare' to compare and select the best among 7 methods, or 'custom' to use a user-provided method.")
-	
+	parser.add_argument('--results_path', type=Path, default=Path('results'),
+						help="Path where results will be written")
 	args = parser.parse_args()
+
+	if args.image_path.is_dir():
+		ome_tiffs = list(find_ome_tiffs(args.image_path))
+		image_path = ome_tiffs[0]
+	elif args.image_path.is_file():
+		image_path = args.image_path
+	else:
+		raise FileNotFoundError(f'Not a file or directory: {args.image_path}')
+
 	# Process the image
 	print("3DCellComposer v1.1")
 	print("Generating input channels for segmentation...")
-	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(args.image_path,
+	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
 	                                                                                       args.nucleus_channel_marker_list,
 	                                                                                       args.cytoplasm_channel_marker_list,
 	                                                                                       args.membrane_channel_marker_list)
-	voxel_size = extract_voxel_size_from_tiff(args.image_path)
+	voxel_size = extract_voxel_size_from_tiff(image_path)
 	
 	print("Segmenting every 2D slices across three axes...")
 	if args.segmentation_method in ["deepcell", "custom"]:
@@ -167,13 +181,13 @@ def main():
 		               'CellX',
 		               'CellSegm']
 		install_segmentation_methods()
-		split_slices(os.path.dirname(args.image_path))
+		split_slices(image_path.parent)
 		quality_score_list = list()
 		metrics_list = list()
 		cell_mask_final_list = list()
 		nuclear_mask_final_list = list()
 		for method in all_methods:
-			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, os.path.dirname(args.image_path), voxel_size)
+			cell_mask_all_axes, nuclear_mask_all_axes = segmentation_single_method(method, image_path.parent, voxel_size)
 			method_quality_score, method_metrics, method_cell_mask_final, method_nuclear_mask_final = process_segmentation_masks(
 				cell_mask_all_axes,
 				nuclear_mask_all_axes,
@@ -195,26 +209,22 @@ def main():
 		best_nuclear_mask_final = nuclear_mask_final_list[best_quality_score_index]
 		print(f'{best_method} yields the best segmentation.')
 		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
-	
-	results_path = f'{os.path.dirname(args.image_path)}/results'
-	if not os.path.exists(results_path):
-		os.makedirs(results_path)
+
+	if not args.results_path.is_dir():
+		args.results_path.mkdir(exist_ok=True, parents=True)
 	
 	import tifffile
-	tifffile.imwrite(f'{results_path}/3D_cell_mask.tif', best_cell_mask_final)
-	tifffile.imwrite(f'{results_path}/3D_nuclear_mask.tif', best_nuclear_mask_final)
-	
-	metrics_path = f'{results_path}/metrics.json'
-	
-	with open(metrics_path, 'w') as f:
+	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', best_cell_mask_final)
+	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', best_nuclear_mask_final)
+
+	with open(args.results_path / 'metrics.json', 'w') as f:
 		json.dump(best_metrics, f)
-	
-	quality_score_path = f'{results_path}/quality_score.txt'
-	np.savetxt(quality_score_path, [best_quality_score], fmt='%f')
+
+	np.savetxt(args.results_path / 'quality_score.txt', [best_quality_score], fmt='%f')
 
 	print("Generating surface meshes for visualization in Blender..")
 	best_cell_mask_final_colored, number_of_colors = coloring_3D(best_cell_mask_final)
-	meshing_3D(best_cell_mask_final, best_cell_mask_final_colored, number_of_colors, results_path)
+	meshing_3D(best_cell_mask_final, best_cell_mask_final_colored, number_of_colors, args.results_path)
 	
 	print("3D Segmentation and Evaluation Completed.")
 
