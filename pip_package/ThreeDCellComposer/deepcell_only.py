@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from deepcell.applications import Mesmer
 import numpy as np
 
@@ -7,6 +9,8 @@ Author: Haoran Chen
 Version: 1.1 December 14, 2023 R.F.Murphy
         Modify dimensions of the XZ and YZ to fully pad z with zeros  
 """
+
+model_path = Path("/opt/.keras/models/0_12_9/MultiplexSegmentation")
 
 def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	z_slice_num = im1.shape[0]
@@ -39,14 +43,19 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 	
 	from tensorflow.compat.v1 import ConfigProto
 	from tensorflow.compat.v1 import InteractiveSession
+	from tensorflow.keras.models import load_model
 	import tensorflow as tf
-	#
+
+	model = None
+	if model_path.is_dir():
+		model = load_model(model_path)
+
 	config = ConfigProto()
 	config.gpu_options.allow_growth = True
 	session = InteractiveSession(config=config)
 	config.gpu_options.per_process_gpu_memory_fraction = 0.9
 	tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-	app = Mesmer()
+	app = Mesmer(model=model)
 
 	print('Segmenting in ',axis,' direction...')
 	istep=max(1,int(len(im)/10))
@@ -70,4 +79,3 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size):
 		nuc_mask = labeled_image[:, :z_slice_num, :, 1]
 		
 	return cell_mask, nuc_mask
-
