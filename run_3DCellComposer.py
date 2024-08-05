@@ -134,7 +134,7 @@ def main():
 	print("3DCellComposer v1.1")
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
-																						   args.results_dir,
+																						   args.results_path,
 	                                                                                       args.nucleus_channel_marker_list,
 	                                                                                       args.cytoplasm_channel_marker_list,
 	                                                                                       args.membrane_channel_marker_list)
