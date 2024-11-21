@@ -1,6 +1,7 @@
 import numpy as np
 import bz2
 import pickle
+from pathlib import Path
 from skimage import measure
 from skimage.io import imsave
 import pandas as pd
@@ -90,7 +91,7 @@ def generate_color_map(number_of_colors):
 
 
 
-def meshing_3D(mask, mask_colored, num_of_col, output_path):
+def meshing_3D(mask, mask_colored, num_of_col, output_path: Path):
 
 	cell_coords = get_indices_pandas(mask)[1:]
 	
@@ -153,5 +154,5 @@ def meshing_3D(mask, mask_colored, num_of_col, output_path):
 	all_colors = np.vstack(all_colors)
 	
 	color_map = generate_color_map(num_of_col)
-	write_to_mtl(color_map, f'{output_path}/cell_mesh.mtl')
-	write_to_obj(all_verts, all_faces, all_groups, all_colors, f'{output_path}/data/results/cell_mesh.obj')
+	write_to_mtl(color_map, output_path / 'cell_mesh.mtl')
+	write_to_obj(all_verts, all_faces, all_groups, all_colors, output_path / 'cell_mesh.obj')

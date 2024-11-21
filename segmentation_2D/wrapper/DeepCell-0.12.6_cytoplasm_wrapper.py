@@ -5,12 +5,15 @@ from deepcell.applications import Mesmer
 # from deepcell.applications import NuclearSegmentation
 # from deepcell.applications import CytoplasmSegmentation
 import os
+from pathlib import Path
 from os.path import join
 import numpy as np
 import sys
 import bz2
 import pickle
 import deepcell
+
+model_path = Path("/opt/.keras/models/0_12_9/MultiplexSegmentation")
 
 file_dir = sys.argv[1]
 axis = sys.argv[2]
@@ -46,14 +49,19 @@ elif axis == 'YZ':
 
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
+from tensorflow.keras.models import load_model
 import tensorflow as tf
-#
+
+model = None
+if model_path.is_dir():
+	model = load_model(model_path)
+
 config = ConfigProto()
 config.gpu_options.allow_growth = True
 session = InteractiveSession(config=config)
 config.gpu_options.per_process_gpu_memory_fraction = 0.9
 tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-app = Mesmer()
+app = Mesmer(model=model)
 
 for i in range(len(im)):
 	if i == 0:
