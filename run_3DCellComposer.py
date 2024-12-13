@@ -6,6 +6,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import json
 
 from ome_utils import find_ome_tiffs
+import pickle
 
 from segmentation_2D.preprocessing import *
 from segmentation_2D.deepcell_only import deepcell_segmentation_2D
@@ -146,11 +147,36 @@ def main():
 		if args.segmentation_method == "deepcell":
 			cell_mask_all_axes = {}
 			nuclear_mask_all_axes = {}
-			for axis in ['XY', 'XZ', 'YZ']:
+
+			cell_mask_file_name = 'cell_mask_all_axes.pkl'
+			nuclear_mask_file_name = 'nuclear_mask_all_axes.pkl'
+
+			if os.path.exists(cell_mask_file_name) and os.path.exists(nuclear_mask_file_name):
+				# Load the dictionaries
+				with open('cell_mask_all_axes.pkl', 'rb') as cell_mask_file:
+					cell_mask_all_axes = pickle.load(cell_mask_file)
+
+				with open('nuclear_mask_all_axes.pkl', 'rb') as nuclear_mask_file:
+					nuclear_mask_all_axes = pickle.load(nuclear_mask_file)
+
+				axis_list = [element for element in axis_list if element not in cell_mask_all_axes]
+
+			
+				
+
+			for axis in axis_list:
 				cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis,
 				                                                             voxel_size)
 				cell_mask_all_axes[axis] = cell_mask_axis
 				nuclear_mask_all_axes[axis] = nuclear_mask_axis
+
+				#save dict
+				with open('cell_mask_all_axes.pkl', 'wb') as cell_mask_file:
+					pickle.dump(cell_mask_all_axes, cell_mask_file)
+
+				with open('nuclear_mask_all_axes.pkl', 'wb') as nuclear_mask_file:
+					pickle.dump(nuclear_mask_all_axes, nuclear_mask_file)
+
 		
 		
 		elif args.segmentation_method == "custom":

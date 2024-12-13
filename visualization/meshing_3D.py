@@ -26,7 +26,7 @@ def write_to_mtl(materials, filename):
 def write_to_obj(verts, faces, groups, colors, filename):
 	with open(filename, 'w') as f:
 		f.write(
-			f'mtllib ./data/cell_mesh.mtl\n')
+			f'mtllib ./cell_mesh.mtl\n')
 		
 		# Write vertices
 		for v in verts:
