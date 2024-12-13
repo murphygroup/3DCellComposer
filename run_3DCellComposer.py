@@ -8,6 +8,8 @@ import json
 from ome_utils import find_ome_tiffs
 import pickle
 
+import tifffile
+
 from segmentation_2D.preprocessing import *
 from segmentation_2D.deepcell_only import deepcell_segmentation_2D
 from segmentation_2D.wrapper.custom_segmentation_wrapper import custom_segmentation
@@ -20,7 +22,7 @@ from evaluation.single_method_eval_3D import seg_evaluation_3D
 from visualization.coloring_3D import coloring_3D
 from visualization.meshing_3D import meshing_3D
 
-from scipy.ndimage import binary_dilation
+from scipy.ndimage import binary_dilation, binary_erosion
 
 """
 3DCellComposer MAIN PROGRAM
@@ -103,14 +105,59 @@ def process_segmentation_masks(cell_mask_all_axes,
 	
 	return best_quality_score, best_metrics, best_cell_mask, best_nuclear_mask
 
+def convert_to_sequential_labels(mask):
+
+    unique_labels = np.unique(mask)
+    unique_labels = unique_labels[unique_labels > 0]
+    
+    # Create relabeling map (old label -> new sequential label)
+    relabel_map = {old_label: new_label for new_label, old_label 
+                   in enumerate(unique_labels, start=1)}
+    
+    # Create new sequential mask
+    sequential_mask = np.zeros_like(mask, dtype=np.int32)
+    for old_label, new_label in relabel_map.items():
+        sequential_mask[mask == old_label] = new_label
+    
+    return sequential_mask, relabel_map
+
 def get_3D_boundaries(mask):
 
-    boundaries = np.zeros_like(mask)
-    for label in range(1, mask.max() + 1):
+    # First relabel the mask with sequential integers
+    sequential_mask, relabel_map = convert_to_sequential_labels(mask)
+    print(f"Relabeled {len(relabel_map)} objects")
+    
+    # Generate boundaries with sequential labels
+    boundaries = np.zeros_like(sequential_mask)
+    # for label in range(1, len(relabel_map) + 1):
+    #     binary_mask = (sequential_mask == label)
+    #     dilated = binary_dilation(binary_mask)
+    #     boundaries[dilated & ~binary_mask] = label
+    # Process each z-slice
+    for z in range(sequential_mask.shape[0]):
+        boundaries[z] = get_2D_boundaries(sequential_mask[z])
+        
+        # Print progress every 10 slices
+        if z % 10 == 0:
+            print(f"Processed slice {z}/{sequential_mask.shape[0]}")
+    
+    return sequential_mask, boundaries
 
-        binary_mask = (mask == label)
-        dilated = binary_dilation(binary_mask)
-        boundaries[dilated & ~binary_mask] = label
+def get_2D_boundaries(mask_slice):
+
+    boundaries = np.zeros_like(mask_slice)
+    labels = np.unique(mask_slice)[1:]  # exclude 0
+    
+    for label in labels:
+        # Create binary mask for current label
+        binary_mask = (mask_slice == label)
+        
+        # Get boundary by subtracting eroded mask from original
+        eroded = binary_erosion(binary_mask)
+        boundary = binary_mask & ~eroded
+        
+        # Set boundary with original label value
+        boundaries[boundary] = label
     
     return boundaries
 
@@ -253,19 +300,15 @@ def main():
 		print(f'{best_method} yields the best segmentation.')
 		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
 
-	import tifffile
-	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', best_cell_mask_final)
-	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', best_nuclear_mask_final)
-
 	#get boundaries
-	cell_boundaries = get_3D_boundaries(best_cell_mask_final)
-	nuclear_boundaries = get_3D_boundaries(best_nuclear_mask_final)
+	cell_mask, cell_boundaries = get_3D_boundaries(best_cell_mask_final)
+	nuclear_mask, nuclear_boundaries = get_3D_boundaries(best_nuclear_mask_final)
 
-	# Write boundary masks
+	# Write masks
+	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', cell_mask)
+	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', nuclear_mask)
 	tifffile.imwrite(args.results_path / '3D_cell_boundaries.tif', cell_boundaries)
 	tifffile.imwrite(args.results_path / '3D_nuclear_boundaries.tif', nuclear_boundaries)
-
-
 
 	with open(args.results_path / 'metrics.json', 'w') as f:
 		json.dump(best_metrics, f)
