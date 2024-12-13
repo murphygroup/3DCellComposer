@@ -20,6 +20,8 @@ from evaluation.single_method_eval_3D import seg_evaluation_3D
 from visualization.coloring_3D import coloring_3D
 from visualization.meshing_3D import meshing_3D
 
+from scipy.ndimage import binary_dilation
+
 """
 3DCellComposer MAIN PROGRAM
 Author: Haoran Chen and Robert F. Murphy
@@ -100,6 +102,17 @@ def process_segmentation_masks(cell_mask_all_axes,
 	best_nuclear_mask = final_matched_3D_nuclear_mask_JI[best_JI]
 	
 	return best_quality_score, best_metrics, best_cell_mask, best_nuclear_mask
+
+def get_3D_boundaries(mask):
+
+    boundaries = np.zeros_like(mask)
+    for label in range(1, mask.max() + 1):
+
+        binary_mask = (mask == label)
+        dilated = binary_dilation(binary_mask)
+        boundaries[dilated & ~binary_mask] = label
+    
+    return boundaries
 
 
 def main():
@@ -243,6 +256,16 @@ def main():
 	import tifffile
 	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', best_cell_mask_final)
 	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', best_nuclear_mask_final)
+
+	#get boundaries
+	cell_boundaries = get_3D_boundaries(best_cell_mask_final)
+	nuclear_boundaries = get_3D_boundaries(best_nuclear_mask_final)
+
+	# Write boundary masks
+	tifffile.imwrite(args.results_path / '3D_cell_boundaries.tif', cell_boundaries)
+	tifffile.imwrite(args.results_path / '3D_nuclear_boundaries.tif', nuclear_boundaries)
+
+
 
 	with open(args.results_path / 'metrics.json', 'w') as f:
 		json.dump(best_metrics, f)
