@@ -178,6 +178,24 @@ def main():
 	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, 'compare' to compare and select the best among 7 methods, or 'custom' to use a user-provided method.")
 	parser.add_argument('--results_path', type=Path, default=Path('results'),
 						help="Path where results will be written")
+	parser.add_argument('--chunk_size', type=int, default=100,
+						help="Chunk size for segmentation")
+	parser.add_argument('--sampling_interval', type=int, default=10,
+						help="Sampling interval for segmentation")
+	parser.add_argument('--interpolation_method', type=str, default='cubic',
+						help="Interpolation method for segmentation")
+	parser.add_argument('--fill_value', type=str, default='extrapolate',
+						help="Fill value for segmentation")
+	parser.add_argument('--max_tries', type=int, default=3,
+						help="Maximum number of tries for segmentation")
+	parser.add_argument('--quality_threshold', type=float, default=0.3,
+						help="Quality threshold for segmentation")
+	parser.add_argument('--sampling_reduce', type=int, default=2,
+						help="Reduce sampling interval for segmentation")
+
+
+
+
 	args = parser.parse_args()
 
 	if args.image_path.is_dir():
@@ -200,51 +218,83 @@ def main():
 	                                                                                       args.cytoplasm_channel_marker_list,
 	                                                                                       args.membrane_channel_marker_list)
 	voxel_size = extract_voxel_size_from_tiff(image_path)
+
+	#segmentation
+	sampling_interval = args.sampling_interval
+	max_tries = args.max_tries
+	quality_threshold = args.quality_threshold
+	sampling_reduce = args.sampling_reduce
+
+
 	
 	print("Segmenting every 2D slices across three axes...")
 	if args.segmentation_method in ["deepcell", "custom"]:
-		# For a single method
-		if args.segmentation_method == "deepcell":
-			cell_mask_all_axes = {}
-			nuclear_mask_all_axes = {}
-			for axis in ['XY', 'XZ', 'YZ']:
-				cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis,
-				                                                             voxel_size)
-				cell_mask_all_axes[axis] = cell_mask_axis
-				nuclear_mask_all_axes[axis] = nuclear_mask_axis
 
-				#save for future debug
-				#save dict
-				with open('cell_mask_all_axes.pkl', 'wb') as cell_mask_file:
-					pickle.dump(cell_mask_all_axes, cell_mask_file)
+		while max_tries > 0:
+			# For a single method
 
-				with open('nuclear_mask_all_axes.pkl', 'wb') as nuclear_mask_file:
-					pickle.dump(nuclear_mask_all_axes, nuclear_mask_file)
+			if sampling_interval == 1:
+				max_tries = 0
+
+			if args.segmentation_method == "deepcell":
+
+
+				cell_mask_all_axes = {}
+				nuclear_mask_all_axes = {}
+				for axis in ['XY', 'XZ', 'YZ']:
+					cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis,
+																				voxel_size, sampling_interval, args.chunk_size, args.interpolation_method, args.fill_value)
+					cell_mask_all_axes[axis] = cell_mask_axis
+					nuclear_mask_all_axes[axis] = nuclear_mask_axis
+
+					#save for future debug
+					#save dict
+					with open('cell_mask_all_axes.pkl', 'wb') as cell_mask_file:
+						pickle.dump(cell_mask_all_axes, cell_mask_file)
+
+					with open('nuclear_mask_all_axes.pkl', 'wb') as nuclear_mask_file:
+						pickle.dump(nuclear_mask_all_axes, nuclear_mask_file)
 
 		
 		
-		elif args.segmentation_method == "custom":
-			cell_mask_all_axes = {}
-			nuclear_mask_all_axes = {}
-			for axis in ['XY', 'XZ', 'YZ']:
-				cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_channel, cytoplasm_channel,
-				                                                        membrane_channel, axis, voxel_size)
-				cell_mask_all_axes[axis] = cell_mask_axis
-				nuclear_mask_all_axes[axis] = nuclear_mask_axis
+			elif args.segmentation_method == "custom":
+				cell_mask_all_axes = {}
+				nuclear_mask_all_axes = {}
+				for axis in ['XY', 'XZ', 'YZ']:
+					cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_channel, cytoplasm_channel,
+																			membrane_channel, axis, voxel_size)
+					cell_mask_all_axes[axis] = cell_mask_axis
+					nuclear_mask_all_axes[axis] = nuclear_mask_axis
 		
-		best_quality_score, best_metrics, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(
-			cell_mask_all_axes,
-			nuclear_mask_all_axes,
-			nucleus_channel,
-			cytoplasm_channel,
-			membrane_channel,
-			image,
-			voxel_size)
+			best_quality_score, best_metrics, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(
+				cell_mask_all_axes,
+				nuclear_mask_all_axes,
+				nucleus_channel,
+				cytoplasm_channel,
+				membrane_channel,
+				image,
+				voxel_size)
 		
-		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
+			print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
+
+			if best_quality_score > args.quality_threshold:
+				break
+			else:
+				max_tries -= 1
+				sampling_interval = sampling_interval - sampling_reduce
+				print(f"Quality score is too low, Sampling interval is reduced to {sampling_interval}")
+				print(f"Tries left: {max_tries}")
+				if sampling_interval < 1:
+					print("Sampling interval is too small, setting to 1")
+					sampling_interval = 1
+
+
+
 	
+
 	
 	elif args.segmentation_method == "compare":
+
 		# For comparing multiple methods
 		print('installing all methods, it may take some time...')
 		all_methods = ['DeepCell-0.12.6_membrane',
