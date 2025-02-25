@@ -4,6 +4,7 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 import json
+from datetime import datetime
 
 from ome_utils import find_ome_tiffs
 import pickle
@@ -32,6 +33,12 @@ Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
         deepcell_only.py
         single_method_eval_3D.py
         meshing_3D.py
+Version: 1.3 February 15, 2025 R.F.Murphy, Ted Zhang
+        Correct sampling code to use replication to fill intermediate slices
+        Allow different sampling intervals for XY, XZ and YZ
+        Convert to even spacing by dividing by specific factor
+        Save and reuse previous segmented slices
+        Optionally save results after each trial
 """
 
 def parse_marker_list(arg):
@@ -44,9 +51,9 @@ def process_segmentation_masks(cell_mask_all_axes,
                                cytoplasm_channel,
                                membrane_channel,
                                image,
-                               voxel_size):
+                               voxel_size,max_JI):
 	min_JI = 0.0
-	max_JI = 0.4
+	#max_JI = 0.4
 	JI_search_interval = 0.1
 	num_steps = int((max_JI - min_JI) / JI_search_interval) + 1
 	JI_range = np.linspace(min_JI, max_JI, num_steps)
@@ -57,8 +64,9 @@ def process_segmentation_masks(cell_mask_all_axes,
 		for axis in ['XY', 'XZ', 'YZ']:
 			matched_2D_stack_axis = matching_cells_2D(cell_mask_all_axes[axis], JI)
 			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
-	
-	print("Matching and repairing 3D cells...")
+			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
+			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
+	print(f"{datetime.now()} Matching and repairing 3D cells...")
 	matched_3D_all_JI = {}
 	for JI in JI_range:
 		matched_2D_stack_XY = matched_2D_stack_all_JI[JI]['XY']
@@ -66,18 +74,22 @@ def process_segmentation_masks(cell_mask_all_axes,
 		matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
 		matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
 		matched_3D_all_JI[JI] = matched_3D_cell_mask
-	
-	print("Matching 3D nuclei...")
+
+	print(f"{datetime.now()} Matching 3D nuclei...")
 	final_matched_3D_cell_mask_JI = {}
 	final_matched_3D_nuclear_mask_JI = {}
 	for JI in JI_range:
 		matched_3D_cell_mask = matched_3D_all_JI[JI]
 		final_matched_3D_cell_mask, final_matched_3D_nuclear_mask = matching_nuclei_3D(matched_3D_cell_mask,
 		                                                                               nuclear_mask_all_axes['XY'])
+		#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
+		#final_matched_3D_cell_mask = fill_in_slices3D(final_matched_3D_cell_mask, nucleus_channel.shape)
+		#final_matched_3D_nuclear_mask = fill_in_slices3D(final_matched_3D_nuclear_mask, nucleus_channel.shape)
+		#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
 		final_matched_3D_cell_mask_JI[JI] = final_matched_3D_cell_mask
 		final_matched_3D_nuclear_mask_JI[JI] = final_matched_3D_nuclear_mask
 	
-	print("Evaluating 3D cell segmentation...")
+	print("{datetime.now()} Evaluating 3D cell segmentation...")
 	quality_score_JI = list()
 	metrics_JI = list()
 	for JI in JI_range:
@@ -102,6 +114,7 @@ def process_segmentation_masks(cell_mask_all_axes,
 	best_metrics = metrics_JI[best_JI_index]
 	best_cell_mask = final_matched_3D_cell_mask_JI[best_JI]
 	best_nuclear_mask = final_matched_3D_nuclear_mask_JI[best_JI]
+	print(f"{datetime.now()}")
 	
 	return best_quality_score, best_metrics, best_cell_mask, best_nuclear_mask
 
@@ -161,6 +174,22 @@ def get_2D_boundaries(mask_slice):
     
     return boundaries
 
+def writeresults(rpath,best_cell_mask_final,best_nuclear_mask_final,best_metrics,best_quality_score):
+	if not rpath.is_dir():
+		rpath.mkdir(exist_ok=True, parents=True)
+	#get boundaries
+	cell_mask, cell_boundaries = get_3D_boundaries(best_cell_mask_final)
+	nuclear_mask, nuclear_boundaries = get_3D_boundaries(best_nuclear_mask_final)
+	# Write masks
+	tifffile.imwrite(rpath / '3D_cell_mask.tif', cell_mask)
+	tifffile.imwrite(rpath / '3D_nuclear_mask.tif', nuclear_mask)
+	tifffile.imwrite(rpath / '3D_cell_boundaries.tif', cell_boundaries)
+	tifffile.imwrite(rpath / '3D_nuclear_boundaries.tif', nuclear_boundaries)
+
+	with open(rpath / 'metrics.json', 'w') as f:
+		json.dump(best_metrics, f)
+
+	np.savetxt(rpath / 'quality_score.txt', [best_quality_score], fmt='%f')
 
 def main():
 	parser = argparse.ArgumentParser(description="3DCellComposer Image Processor")
@@ -180,18 +209,20 @@ def main():
 						help="Path where results will be written")
 	parser.add_argument('--chunk_size', type=int, default=100,
 						help="Chunk size for segmentation")
-	parser.add_argument('--sampling_interval', type=int, default=10,
-						help="Sampling interval for segmentation")
-	parser.add_argument('--interpolation_method', type=str, default='cubic',
-						help="Interpolation method for segmentation")
-	parser.add_argument('--fill_value', type=str, default='extrapolate',
-						help="Fill value for segmentation")
-	parser.add_argument('--max_tries', type=int, default=3,
-						help="Maximum number of tries for segmentation")
-	parser.add_argument('--quality_threshold', type=float, default=0.3,
+	parser.add_argument('--sampling_interval', type=parse_marker_list, default='1,1,1',
+						help="Sampling interval for segmentation in XY, XZ and YZ directions")
+	#parser.add_argument('--interpolation_method', type=str, default='cubic',
+	#					help="Interpolation method for segmentation")
+	#parser.add_argument('--fill_value', type=str, default='extrapolate',
+	#					help="Fill value for segmentation")
+	parser.add_argument('--max_tries', type=int, default=10,
+						help="Maximum number of tries for sampled segmentation")
+	parser.add_argument('--quality_threshold', type=float, default=float("inf"),
 						help="Quality threshold for segmentation")
 	parser.add_argument('--sampling_reduce', type=int, default=2,
-						help="Reduce sampling interval for segmentation")
+						help="Divisor to reduce sampling interval for segmentation")
+	parser.add_argument('--max_JI', type=float, default=0.4,
+						help="Upper limit for Jaccard index for cell merging")
 
 
 
@@ -210,31 +241,33 @@ def main():
 		args.results_path.mkdir(exist_ok=True, parents=True)
 
 	# Process the image
-	print("3DCellComposer v1.1")
+	print("3DCellComposer v1.3")
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
 																						   args.results_path,
 	                                                                                       args.nucleus_channel_marker_list,
 	                                                                                       args.cytoplasm_channel_marker_list,
 	                                                                                       args.membrane_channel_marker_list)
+	#print(nucleus_channel.shape,cytoplasm_channel.shape,membrane_channel.shape,image.shape)
+	print(f"Marker channels shape: {nucleus_channel.shape}, All channels shape: {image.shape}")
 	voxel_size = extract_voxel_size_from_tiff(image_path)
+	print(voxel_size)
 
 	#segmentation
-	sampling_interval = args.sampling_interval
+	print(type(args.sampling_interval))
+	print(args.sampling_interval)
+	svals = args.sampling_interval
+	sampling_interval = {'XY': int(svals[0]), 'XZ': int(svals[1]), 'YZ': int(svals[2])}
+	print(f"Sampling interval {sampling_interval}")
 	max_tries = args.max_tries
 	quality_threshold = args.quality_threshold
 	sampling_reduce = args.sampling_reduce
 
-
-	
 	print("Segmenting every 2D slices across three axes...")
 	if args.segmentation_method in ["deepcell", "custom"]:
 
 		while max_tries > 0:
 			# For a single method
-
-			if sampling_interval == 1:
-				max_tries = 0
 
 			if args.segmentation_method == "deepcell":
 
@@ -243,20 +276,18 @@ def main():
 				nuclear_mask_all_axes = {}
 				for axis in ['XY', 'XZ', 'YZ']:
 					cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_channel, membrane_channel, axis,
-																				voxel_size, sampling_interval, args.chunk_size, args.interpolation_method, args.fill_value)
+																				voxel_size, sampling_interval[axis], args.chunk_size, args.results_path)
 					cell_mask_all_axes[axis] = cell_mask_axis
 					nuclear_mask_all_axes[axis] = nuclear_mask_axis
 
 					#save for future debug
 					#save dict
-					with open('cell_mask_all_axes.pkl', 'wb') as cell_mask_file:
-						pickle.dump(cell_mask_all_axes, cell_mask_file)
+					#with open('cell_mask_all_axes.pkl', 'wb') as cell_mask_file:
+					#	pickle.dump(cell_mask_all_axes, cell_mask_file)
 
-					with open('nuclear_mask_all_axes.pkl', 'wb') as nuclear_mask_file:
-						pickle.dump(nuclear_mask_all_axes, nuclear_mask_file)
+					#with open('nuclear_mask_all_axes.pkl', 'wb') as nuclear_mask_file:
+					#	pickle.dump(nuclear_mask_all_axes, nuclear_mask_file)
 
-		
-		
 			elif args.segmentation_method == "custom":
 				cell_mask_all_axes = {}
 				nuclear_mask_all_axes = {}
@@ -265,7 +296,6 @@ def main():
 																			membrane_channel, axis, voxel_size)
 					cell_mask_all_axes[axis] = cell_mask_axis
 					nuclear_mask_all_axes[axis] = nuclear_mask_axis
-		
 			best_quality_score, best_metrics, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(
 				cell_mask_all_axes,
 				nuclear_mask_all_axes,
@@ -273,22 +303,20 @@ def main():
 				cytoplasm_channel,
 				membrane_channel,
 				image,
-				voxel_size)
+				voxel_size, args.max_JI)
 		
 			print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
-
-			if best_quality_score > args.quality_threshold:
+			trialpath = args.results_path / ('trial' + str(args.max_tries-max_tries))
+			print(trialpath)
+			writeresults(trialpath,best_cell_mask_final,best_nuclear_mask_final,best_metrics,best_quality_score)
+			if best_quality_score > args.quality_threshold or max(sampling_interval.values())==1 or max_tries ==1:
 				break
 			else:
 				max_tries -= 1
-				sampling_interval = sampling_interval - sampling_reduce
+				for axis in ['XY', 'XZ', 'YZ']:
+					sampling_interval[axis] = int(max(sampling_interval[axis] / sampling_reduce,1))
 				print(f"Quality score is too low, Sampling interval is reduced to {sampling_interval}")
 				print(f"Tries left: {max_tries}")
-				if sampling_interval < 1:
-					print("Sampling interval is too small, setting to 1")
-					sampling_interval = 1
-
-
 
 	
 
@@ -334,20 +362,7 @@ def main():
 		print(f'{best_method} yields the best segmentation.')
 		print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
 
-	#get boundaries
-	cell_mask, cell_boundaries = get_3D_boundaries(best_cell_mask_final)
-	nuclear_mask, nuclear_boundaries = get_3D_boundaries(best_nuclear_mask_final)
-
-	# Write masks
-	tifffile.imwrite(args.results_path / '3D_cell_mask.tif', cell_mask)
-	tifffile.imwrite(args.results_path / '3D_nuclear_mask.tif', nuclear_mask)
-	tifffile.imwrite(args.results_path / '3D_cell_boundaries.tif', cell_boundaries)
-	tifffile.imwrite(args.results_path / '3D_nuclear_boundaries.tif', nuclear_boundaries)
-
-	with open(args.results_path / 'metrics.json', 'w') as f:
-		json.dump(best_metrics, f)
-
-	np.savetxt(args.results_path / 'quality_score.txt', [best_quality_score], fmt='%f')
+	writeresults(args.results_path,best_cell_mask_final,best_nuclear_mask_final,best_metrics,best_quality_score)
 
 	print("Generating surface meshes for visualization in Blender..")
 	best_cell_mask_final_colored, number_of_colors = coloring_3D(best_cell_mask_final)
