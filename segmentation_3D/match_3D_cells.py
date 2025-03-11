@@ -1,6 +1,5 @@
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 import pandas as pd
 from skimage.segmentation import find_boundaries
@@ -30,7 +29,7 @@ def get_volumes_from_indices(series):
 	
 def matching_cells_3D(mask_XY, mask_XZ, mask_YZ):
 
-	print(mask_XY.shape,mask_XZ.shape,mask_YZ.shape)
+	#print(mask_XY.shape,mask_XZ.shape,mask_YZ.shape)
 	#this rotation is already done in "deepcell_segmentation_2D"
 	#mask_XZ = np.rot90(mask_XZ, k=1, axes=(0, 2))
 	#mask_YZ = np.rot90(mask_YZ, k=1, axes=(0, 1))

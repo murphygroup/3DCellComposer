@@ -5,6 +5,8 @@ import numpy as np
 import math
 import pickle
 import os
+from datetime import datetime
+import time
 
 # Initialize TensorFlow
 from tensorflow.compat.v1 import ConfigProto, InteractiveSession
@@ -19,6 +21,8 @@ Version: 1.1 December 14, 2023 R.F.Murphy
 Version: 1.3 February 14, 2025 R.F.Murphy
         copy segmented slices to fill between them
         save prevously segmented slices for efficiency
+Version: 1.5 March 7, 2025 R.F.Murphy
+        allow adjustable minimum slice padding
 """
 
 model_path = Path("/opt/.keras/models/0_12_9/MultiplexSegmentation")
@@ -61,11 +65,15 @@ def fill_in_slices3D(sampled_preds, desired_shape):
     print(full.shape)
     return full[0:desired_shape[0],0:desired_shape[1],0:desired_shape[2]]
 
-def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, chunk_size=100, results_path=Path('results'), dtype='float32'):
+def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, chunk_size=100, results_path=Path('results'), maxima_threshold=0.075, interior_threshold=0.2, compartment='both', min_slice_padding='512', dtype='float32'):
     """
     Perform 2D segmentations with slice sampling
     """
 
+    #print(type(im1),type(im2))
+    #print(np.min(im1),np.max(im1))
+    #print(np.min(im2),np.max(im2))
+    #dtype = 'int16'
     # z_slice_num = im1.shape[0]
     im1 = im1.astype(dtype)
     im2 = im2.astype(dtype)
@@ -110,14 +118,33 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
 
     for i in desired_slices:
         if not isinstance(saved_segmentations[i],np.ndarray):
-            padded_slice = pad_to_multiple(im[i])
+            padded_slice = pad_to_multiple(im[i],min_slice_padding)
             if i==desired_slices[0]:
                 print(f"Padded shape: {padded_slice.shape}")
-            pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both')
+            tstart = time.time()
+            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both')
+            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'maxima_threshold': maxima_threshold})
+            #expslice = np.expand_dims(padded_slice, 0)
+            #print(f"Expanded slice shape: {expslice.shape}")
+            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='whole-cell', postprocess_kwargs_whole_cell={'maxima_threshold': 0.2})
+            pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment=compartment, postprocess_kwargs_whole_cell={'interior_threshold': interior_threshold, 'maxima_threshold': maxima_threshold})
+            #setting to whole-cell only returns x,y,1 instead of x,y,2 so dup
+            #print(pred.shape)
+            pred = np.repeat(pred,2,axis=3)
+            #print(pred.shape)
+            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
+            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='cytoplasm', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
             pred = pred[:, :im.shape[1], :im.shape[2], :]  # Crop back to orig
-            saved_segmentations[i]=pred[0]
             if not i%chunk_size:
                 print(f'Segmented slice {i} of {len(im)}')
+                #print(f"max in slice {i} is {np.max(pred)}")
+                #print(pred.shape)
+            if i == desired_slices[0]:
+                tend = time.time()
+                etime = tend-tstart
+                esttime = etime*(len(desired_slices)-1)/60.
+                print(f"Elapsed time: {round(etime/60.,2)} min; estimated remaining time for this axis: {round(esttime,2)} min")
+            saved_segmentations[i]=pred[0]
         predictions.append(saved_segmentations[i])
     #print(len(predictions),len(saved_segmentations))
 
@@ -127,7 +154,8 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
     predictions = np.array(predictions)
     #print(predictions.shape)
     
-    print('Filling between sampled slices...')
+    if sampling_interval > 1:
+        print('Filling between sampled slices...')
     #print(predictions.shape)
     labeled_image = fill_in_slices(predictions, len(im))
     #print(labeled_image.shape)

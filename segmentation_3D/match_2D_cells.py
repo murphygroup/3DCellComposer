@@ -1,10 +1,7 @@
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from skimage.segmentation import find_boundaries
-import bz2
-import pickle
 from datetime import datetime
 
 """
@@ -118,7 +115,7 @@ def get_unmatched_list(matched_list, new_slice_cell_coords):
 	return unmatched_list, unmatched_list_index
 
 def matching_cells_2D(img, JI_thre):
-	print(f"{datetime.now()} Starting matching_cells_2D with JI {JI_thre}...")
+	#print(f"{datetime.now()} Starting matching_cells_2D with JI {JI_thre}...")
 	new_img = [img[0]]
 	#print(img.shape)
 	for slice_num in range(1, img.shape[0]):
@@ -167,5 +164,5 @@ def matching_cells_2D(img, JI_thre):
 		new_img.append(new_slice_updated_mask)
 		#print(f"{datetime.now()} After slice {slice_num}")
 	new_img = np.stack(new_img, axis=0)
-	print(f"{datetime.now()} After matching")
+	#print(f"{datetime.now()} After matching")
 	return new_img
