@@ -1,6 +1,4 @@
 import numpy as np
-import pickle
-import bz2
 import pandas as pd
 import random
 random.seed(12345)
