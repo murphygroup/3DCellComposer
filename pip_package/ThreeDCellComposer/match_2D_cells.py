@@ -1,8 +1,15 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from skimage.segmentation import find_boundaries
+from datetime import datetime
 
+"""
+FUNCTIONS FOR MATCHING CELLS IN 2D SLICES
+Author: Haoran Chen and Robert F. Murphy
+Version: 1.3 February 14, 2025 R.F.Murphy, Ted Zhang
+        Add option for setting JI_max
+        Add logging
+"""
 
 def get_compartments_diff(arr1, arr2):
 	a = set((tuple(i) for i in arr1))
@@ -50,11 +57,6 @@ def compute_M(data):
 def get_indices_sparse(data):
 	M = compute_M(data)
 	return [np.unravel_index(row.data, data.shape) for row in M]
-
-def show_plt(mask):
-	plt.imshow(mask)
-	plt.show()
-	plt.clf()
 
 def list_remove(c_list, indexes):
 	for index in sorted(indexes, reverse=True):
@@ -107,7 +109,9 @@ def get_unmatched_list(matched_list, new_slice_cell_coords):
 	return unmatched_list, unmatched_list_index
 
 def matching_cells_2D(img, JI_thre):
+	#print(f"{datetime.now()} Starting matching_cells_2D with JI {JI_thre}...")
 	new_img = [img[0]]
+	#print(img.shape)
 	for slice_num in range(1, img.shape[0]):
 		#print("Matching", slice_num, 'th slice')
 		img_current_slice = new_img[slice_num-1].astype(int)
@@ -118,6 +122,7 @@ def matching_cells_2D(img, JI_thre):
 		current_slice_cell_coords = list(map(lambda x: np.array(x).T, current_slice_cell_coords))
 		new_slice_cell_coords = list(map(lambda x: np.array(x).T, new_slice_cell_coords))
 		
+		#print(f"{datetime.now()} After get_indices_sparse")
 		current_slice_cell_matched_list = []
 		new_slice_cell_matched_list = []
 		current_slice_cell_matched_index_list = []
@@ -145,10 +150,13 @@ def matching_cells_2D(img, JI_thre):
 					new_slice_cell_matched_list.append(new_slice_cell_best)
 					current_slice_cell_matched_index_list.append(i_ind)
 					new_slice_cell_matched_index_list.append(j_ind)
-		
+
+		#print(f"{datetime.now()} After i,j loop")
 		
 		new_slice_cell_unmatched_list, new_slice_cell_unmatched_index_list = get_unmatched_list(new_slice_cell_matched_index_list, new_slice_cell_coords)
 		new_slice_updated_mask = get_new_slice_mask(current_slice_cell_matched_index_list, new_slice_cell_matched_list, new_slice_cell_unmatched_list, len(np.unique(new_img[:slice_num])), img_current_slice.shape)
 		new_img.append(new_slice_updated_mask)
+		#print(f"{datetime.now()} After slice {slice_num}")
 	new_img = np.stack(new_img, axis=0)
+	#print(f"{datetime.now()} After matching")
 	return new_img

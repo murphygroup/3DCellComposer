@@ -4,6 +4,10 @@ import os
 import numpy as np
 import xml.etree.ElementTree as ET
 
+'''
+version 1.3: February 19, 2025 R.F.Murphy
+    add downsample support
+
 def extract_voxel_size_from_tiff(file_path):
     # Read OME-TIFF metadata
     with tifffile.TiffFile(file_path) as tif:
@@ -59,7 +63,7 @@ def get_channel_intensity(marker_list, names, img):
 
 
 def write_IMC_input_channels(img_dir, nucleus_channel_marker_list, cytoplasm_channel_marker_list,
-                             membrane_channel_marker_list):
+                             membrane_channel_marker_list,downsample_vector):
     image = imread(img_dir)
     channel_names = get_channel_names(img_dir)
     
@@ -71,6 +75,10 @@ def write_IMC_input_channels(img_dir, nucleus_channel_marker_list, cytoplasm_cha
     
     # membrane_channel_marker_list = ['La139', 'Pr141', 'Eu151', 'Gd160', 'Dy162']
     membrane_channel = get_channel_intensity(membrane_channel_marker_list, channel_names, image)
+
+    nucleus_channel = skimage.measure.block_reduce(nucleus_channel, block_size=downsample_vector,func=np.max)
+    cytoplasm_channel = skimage.measure.block_reduce(cytoplasm_channel, block_size=downsample_vector,func=np.max)
+    membrane_channel = skimage.measure.block_reduce(membrane_channel, block_size=downsample_vector,func=np.max)
     
     imsave(f'{os.path.dirname(img_dir)}/nucleus.tif', nucleus_channel)
     imsave(f'{os.path.dirname(img_dir)}/cytoplasm.tif', cytoplasm_channel)
