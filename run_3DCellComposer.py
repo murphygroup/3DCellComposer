@@ -74,10 +74,11 @@ def process_segmentation_masks(cell_mask_all_axes,
                                downsample_vector):
 	#JI_range = np.linspace(min_JI, max_JI, num_steps)
 	print("Matching 2D cells in adjacent slices for each axis...")
+	axestouse = list(cell_mask_all_axes.keys()
 	matched_2D_stack_all_JI = {}
 	for JI in JI_range:
 		matched_2D_stack_all_JI[JI] = {}
-		for axis in list(cell_mask_all_axes.keys()):
+		for axis in axestouse:
 			matched_2D_stack_axis = matching_cells_2D(cell_mask_all_axes[axis], JI)
 			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
 	print(f"{datetime.now()} Matching and repairing 3D cells...")
@@ -85,8 +86,11 @@ def process_segmentation_masks(cell_mask_all_axes,
 	for JI in JI_range:
 		matched_2D_stack_XY = matched_2D_stack_all_JI[JI]['XY']
 		matched_2D_stack_XZ = matched_2D_stack_all_JI[JI]['XZ']
-		#matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
-		matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
+		if axestouse==3:
+			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
+		else:
+			 #if YZ not calculated, just use XZ
+			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
 		matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
 		matched_3D_all_JI[JI] = matched_3D_cell_mask
 
