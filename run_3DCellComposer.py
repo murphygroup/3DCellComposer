@@ -46,6 +46,9 @@ Version: 1.4 February 20, 2025 R.F.Murphy
 Version: 1.5 March 7, 2025 R.F.Murphy
         Save command line arguments to results folder
         Estimate completion time
+Version: 1.5.1
+        Fix bug that deleted one slice from each direction when cropping
+        Add --skipYZ option to just use XY and XZ slicing
 """
 
 def parse_marker_list(arg):
@@ -71,10 +74,11 @@ def process_segmentation_masks(cell_mask_all_axes,
                                downsample_vector):
 	#JI_range = np.linspace(min_JI, max_JI, num_steps)
 	print("Matching 2D cells in adjacent slices for each axis...")
+	axestouse = list(cell_mask_all_axes.keys()
 	matched_2D_stack_all_JI = {}
 	for JI in JI_range:
 		matched_2D_stack_all_JI[JI] = {}
-		for axis in ['XY', 'XZ', 'YZ']:
+		for axis in axestouse:
 			matched_2D_stack_axis = matching_cells_2D(cell_mask_all_axes[axis], JI)
 			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
 	print(f"{datetime.now()} Matching and repairing 3D cells...")
@@ -82,7 +86,11 @@ def process_segmentation_masks(cell_mask_all_axes,
 	for JI in JI_range:
 		matched_2D_stack_XY = matched_2D_stack_all_JI[JI]['XY']
 		matched_2D_stack_XZ = matched_2D_stack_all_JI[JI]['XZ']
-		matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
+		if axestouse==3:
+			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
+		else:
+			 #if YZ not calculated, just use XZ
+			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
 		matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
 		matched_3D_all_JI[JI] = matched_3D_cell_mask
 
@@ -279,8 +287,10 @@ def main():
 						help="Zl,Zh,Yl,Yh,Xl,Xh limits for cropping before segmentation")
 	parser.add_argument('--min_slice_padding', type=int, default="512",
 						help="minimum size to pad slices to")
+	parser.add_argument('--skipYZ', type=bool, default=False,
+						help="skip YZ slicing")
 
-	CCversion = "v1.5"
+	CCversion = "v1.5.1"
 
 	#return is type argparse.Namespace
 	args = parser.parse_args()
@@ -319,6 +329,7 @@ def main():
 		f.write(f"compartment:{args.compartment}\n")
 		f.write(f"crop_limits:{args.crop_limits}\n")
 		f.write(f"min_slice_padding:{args.min_slice_padding}\n")
+		f.write(f"skipYZ:{args.skipYZ}\n")
 
 	#with open(args.results_path / 'command_line_settings.txt', 'w') as f:
 	#	for obj in dir(args):
@@ -373,7 +384,12 @@ def main():
 	quality_threshold = args.quality_threshold
 	sampling_reduce = args.sampling_reduce
 
-	print("Segmenting 2D slices across three axes...")
+	if args.skipYZ:
+		axestouse = ['XY', 'XZ']
+		print("Segmenting 2D slices across XY and XZ axes...")
+	else:
+		axestouse = ['XY', 'XZ', 'YZ']
+		print("Segmenting 2D slices across three axes...")
 	if args.segmentation_method in ["deepcell", "custom"]:
 
 		while max_tries > 0:
@@ -381,10 +397,9 @@ def main():
 
 			if args.segmentation_method == "deepcell":
 
-
 				cell_mask_all_axes = {}
 				nuclear_mask_all_axes = {}
-				for axis in ['XY', 'XZ', 'YZ']:
+				for axis in axestouse:
 					cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_down, membrane_down, axis,
 																				voxel_down, sampling_interval[axis], args.chunk_size, args.results_path, args.maxima_threshold, args.interior_threshold, args.compartment, args.min_slice_padding)
 					cell_mask_all_axes[axis] = cell_mask_axis
@@ -393,7 +408,7 @@ def main():
 			elif args.segmentation_method == "custom":
 				cell_mask_all_axes = {}
 				nuclear_mask_all_axes = {}
-				for axis in ['XY', 'XZ', 'YZ']:
+				for axis in axestouse:
 					cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_down, cytoplasm_down,
 																			membrane_channel, axis, voxel_down)
 					cell_mask_all_axes[axis] = cell_mask_axis

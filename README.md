@@ -1,7 +1,7 @@
 # 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen, Ted Chang, Matthew Ruffalo and Robert F. Murphy\
 Carnegie Mellon University\
-V1.5 March 14, 2025
+V1.5.1 April 1, 2025
 
 3DCellComposer is a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose any existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
 
@@ -74,6 +74,11 @@ python run_3DCellComposer.py [image_path] [nucleus_markers] [cytoplasm_markers] 
    - **Example**: `"Gd160,Dy162"`
 
 ### Most frequently used optional argument descriptions
+
+**--skipYZ**
+**Description**: Only do 2D segmentation on XY and XZ slices
+**Format*: True or False
+default=False
 
 **--segmentation_method**
 **Description**: Choose the 2D segmentation method.
