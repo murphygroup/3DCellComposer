@@ -74,7 +74,7 @@ def process_segmentation_masks(cell_mask_all_axes,
                                downsample_vector):
 	#JI_range = np.linspace(min_JI, max_JI, num_steps)
 	print("Matching 2D cells in adjacent slices for each axis...")
-	axestouse = list(cell_mask_all_axes.keys()
+	axestouse = list(cell_mask_all_axes.keys())
 	matched_2D_stack_all_JI = {}
 	for JI in JI_range:
 		matched_2D_stack_all_JI[JI] = {}
