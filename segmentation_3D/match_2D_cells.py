@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.sparse import csr_matrix
 from skimage.segmentation import find_boundaries
 from datetime import datetime
@@ -58,11 +57,6 @@ def compute_M(data):
 def get_indices_sparse(data):
 	M = compute_M(data)
 	return [np.unravel_index(row.data, data.shape) for row in M]
-
-def show_plt(mask):
-	plt.imshow(mask)
-	plt.show()
-	plt.clf()
 
 def list_remove(c_list, indexes):
 	for index in sorted(indexes, reverse=True):

@@ -1,10 +1,6 @@
-import sys
 import numpy as np
 from scipy.sparse import csr_matrix
 import pandas as pd
-from skimage.segmentation import find_boundaries
-import pickle
-import bz2
 
 """
 FUNCTIONS FOR MATCHING 3D CELLS

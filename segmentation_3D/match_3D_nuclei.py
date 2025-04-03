@@ -1,11 +1,7 @@
 import numpy as np
-import bz2
-import pickle
 from skimage.segmentation import find_boundaries
 from scipy.sparse import csr_matrix
 import pandas as pd
-import sys
-import os
 
 def match_3D_slice(mask_3D, cell_mask_3D):
 	for z in range(mask_3D.shape[0]):

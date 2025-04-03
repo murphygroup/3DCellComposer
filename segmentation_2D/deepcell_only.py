@@ -23,6 +23,8 @@ Version: 1.3 February 14, 2025 R.F.Murphy
         save prevously segmented slices for efficiency
 Version: 1.5 March 7, 2025 R.F.Murphy
         allow adjustable minimum slice padding
+Version: 1.5.1 March 31, 2025 R.F.Murphy
+        when sampling slices, sample in the middle of the interval
 """
 
 model_path = Path("/opt/.keras/models/0_12_9/MultiplexSegmentation")
@@ -112,8 +114,10 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
     print(f'Segmenting in {axis} direction with sampling interval {sampling_interval}...')
     
     # Process sampled slices
-    desired_slices = range(0, len(im), sampling_interval)
-    #print(desired_slices)
+    # start with middle slice of the sampling interval
+    startslice = math.floor(sampling_interval/2)
+    desired_slices = range(startslice, len(im), sampling_interval)
+    print(desired_slices)
     predictions = []
 
     for i in desired_slices:

@@ -9,6 +9,8 @@ import xml.etree.ElementTree as ET
 FUNCTIONS TO READ IMAGE AND METADATA 
 Author: Haoran Chen
 Version: 1.3 February 14, 2025 R.F.Murphy
+Version: 1.5.1 March 31m 2025 R.F.Murphy
+         Replace -1 in crop limits with full dimension
 """
 
 def extract_voxel_size_from_tiff(file_path):
@@ -91,6 +93,14 @@ def write_IMC_input_channels(img_file: Path, results_dir: Path, nucleus_channel_
             print(f"Invalid crop limits: {cl}")
         else:
             #z, color/channel, y, x
+            imageshap = image.shape
+            #print(imageshap)
+            if cl[1]<0:
+                cl[1]=imageshap[0]
+            if cl[3]<0:
+                cl[3]=imageshap[2]
+            if cl[5]<0:
+                cl[5]=imageshap[3]
             image = image[cl[0]:cl[1],:,cl[2]:cl[3],cl[4]:cl[5]]
             print(f"Cropping image to shape {image.shape}")
     channel_names = get_channel_names(img_file, channel_names)
