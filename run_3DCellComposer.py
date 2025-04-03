@@ -265,7 +265,7 @@ def main():
 						help="Range for Jaccard index for cell merging")
 	parser.add_argument('--skip_eval', type=bool, default=False,
 						help="Skip CellSegmentationEvaluator")
-	parser.add_argument('--skip_blender', type=bool, default=False,
+	parser.add_argument('--skip_blender', type=bool, default=True,
 						help="Skip generating blender files")
 	parser.add_argument('--downsample_vector', type=parse_marker_list, default="1,1,1",
 						help="Vector for downsampling each axis before segmentation")
@@ -279,6 +279,10 @@ def main():
 						help="Zl,Zh,Yl,Yh,Xl,Xh limits for cropping before segmentation")
 	parser.add_argument('--min_slice_padding', type=int, default="512",
 						help="minimum size to pad slices to")
+	parser.add_argument('--channel_names', type=str, default="/hive/users/tedz/3DCellComposer/Tissue_1_tiles/target/MarkerList.txt", 
+					 	help= 'Path to the channel names file')
+	parser.add_argument('--pixel_size', type=list, default=[0.507, 0.507, 1.0],
+						help='Pixel size in microns')
 
 	CCversion = "v1.5"
 
@@ -342,10 +346,14 @@ def main():
 																						   args.results_path,
 	                                                                                       args.nucleus_channel_marker_list,
 	                                                                                       args.cytoplasm_channel_marker_list,
-	                                                                                       args.membrane_channel_marker_list, crop_limits)
+	                                                                                       args.membrane_channel_marker_list, crop_limits, args.channel_names)
 	#print(nucleus_channel.shape,cytoplasm_channel.shape,membrane_channel.shape,image.shape)
 	print(f"Marker channels shape: {nucleus_channel.shape}, All channels shape: {image.shape}")
-	voxel_size = extract_voxel_size_from_tiff(image_path)
+
+	if args.pixel_size:
+		voxel_size = args.pixel_size
+	else:
+		voxel_size = extract_voxel_size_from_tiff(image_path)
 	#values are returned X,Y,Z but image is Z,Y,X so reverse
 	vsi =(int(voxel_size[2]),int(voxel_size[1]),int(voxel_size[0]))
 	#vsi = list(map(int, voxel_size))

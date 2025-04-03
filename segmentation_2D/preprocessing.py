@@ -41,7 +41,12 @@ def extract_voxel_size_from_tiff(file_path):
 
     return (physical_size_x, physical_size_y, physical_size_z)
 
-def get_channel_names(img_dir):
+def get_channel_names(img_dir, channel_names=None):
+
+    if channel_names:
+        channel_names = open(channel_names, 'r').read().splitlines()
+        print(f"Channel names read from file: {channel_names}")
+        return channel_names
     try:
         with tifffile.TiffFile(img_dir) as tif:
             # Get the ImageDescription which contains the XML metadata
@@ -78,7 +83,7 @@ def get_channel_intensity(marker_list, names, img):
 
 
 
-def write_IMC_input_channels(img_file: Path, results_dir: Path, nucleus_channel_marker_list, cytoplasm_channel_marker_list,membrane_channel_marker_list,cl=None):
+def write_IMC_input_channels(img_file: Path, results_dir: Path, nucleus_channel_marker_list, cytoplasm_channel_marker_list,membrane_channel_marker_list,cl=None,channel_names=None):
     print(f"Crop limits: {cl}")
     image = imread(img_file)
     if cl != None:
@@ -88,7 +93,7 @@ def write_IMC_input_channels(img_file: Path, results_dir: Path, nucleus_channel_
             #z, color/channel, y, x
             image = image[cl[0]:cl[1],:,cl[2]:cl[3],cl[4]:cl[5]]
             print(f"Cropping image to shape {image.shape}")
-    channel_names = get_channel_names(img_file)
+    channel_names = get_channel_names(img_file, channel_names)
     
     nucleus_channel = get_channel_intensity(nucleus_channel_marker_list, channel_names, image)
     
