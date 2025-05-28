@@ -197,11 +197,14 @@ default="both"
 
 
 ### Example Command
-Here is an example of a complete command using the `3DCellComposer` script:
+Here is an example of a complete command:
 
 ```bash
 python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --results_path "myresults"
 ```
+
+Note that the example image file 3D_IMC_image.ome.tiff is too large to be stored with normal github.  It is therefore stored with git lfs which places a pointer to the actual file into the github repo.  In order to retrieve the file use "git lfs pull" - see <https://git-lfs.com> and
+<https://graphite.dev/guides/how-to-use-git-lfs-pull> for more information.
 
 In this command, the script processes the image located at `./data/3D_IMC_image.ome.tiff`, utilizing Ir191 as the nuclear marker, the sum of In115, Y89, Tb159 as the cytoplasmic markers, and the sum of La139, Pr141, Eu151, Gd160, Dy162 as the cell membrane markers. The script employs DeepCell as the 2D segmentation model, and the results are stored in the specified folder within the current folder.
 
