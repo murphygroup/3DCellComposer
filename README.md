@@ -1,49 +1,49 @@
-# 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
+p# 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen, Ted Chang, Matthew Ruffalo and Robert F. Murphy\
 Carnegie Mellon University\
-V1.5.1 April 1, 2025
+V1.5.2 May 27, 2025
 
-3DCellComposer is a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose any existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
+3DCellComposer is a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose an existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
 
-It is available as a full-featured GitHub repository, and as a python package on PyPi that provides a simplified implementation that uses just DeepCell as the 2D segmenter.
+It is available as a full-featured GitHub repository, and as a python package on PyPi that provides an older, simplified implementation that uses just DeepCell as the 2D segmenter.
 
-Reference: Haoran Chen and Robert F. Murphy (2023) 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation. Under review.
+Reference: Haoran Chen and Robert F. Murphy (2025) 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation. Under review.
 
 Changes in V1.3: Options added to support subsampling of the slices along each axis.  Caching of slice segmentation results to avoid segmenting again.  Fixes to image padding when the number of z slices is too small.
 
 Changes in V1.5: Added options for cropping initial image, block-wise voxel downsampling prior to segmentation,- setting specific DeepCell parameters (including whether to segment using cell channel, nuclear channel or both), and controlling the minimum padding
 
-## Using the PyPI package
-
-To use the package, 
-```bash
-pip install ThreeDCellComposer
-```
-
-To call the function in python,
-```bash
-from ThreeDCellComposer.ThreeDCellComposer import ThreeDCellComposer
-
-ThreeDCellComposer(image_path,nucleus_channel_marker_list,cytoplasm_channel_marker_list,membrane_channel_marker_list,segmentation_method)
-```
-where the channel lists are strings consisting of the names (not numbers) of the channels to be used for segmentation. Only 'deepcell' is supported as the segmentation_method by the PyPI package at this time. Additional optional arguments are described below.
-
-'run_3DCellComposerUsingPackage.py' is an example python script that calls ThreeDCellposer. 
+Changes in V1.5.2: Improved installation instructions and update environment.yml and requirements.txt.  Updated Cellpose support. Removed use of pint package.
 
 ## Using the repository version
 
 ### Overview
-The `3DCellComposer` script processes multiplexed imaging data for cell segmentation. It requires specific inputs including the path to the image file and lists of markers for different cell components (nucleus, cytoplasm, and cell membrane). It also includes an optional input for specifying the 2D segmentation method(s) to be utilized.
+The `3DCellComposer` script processes multiplexed imaging data for cell segmentation. It requires specific inputs including the path to the image file and lists of markers for different cell components (nucleus, cytoplasm, and cell membrane). It currently can use DeepCell,  Cellpose or a user-provided method for 2D segmentation
 
-### Environment
+### Installation
 
-- Clone this GitHub repository.
+- Clone or download this GitHub repository.
 - Install conda and pip, if not already installed.
-- Install required packages one of two ways:
-  Install necessary packages in the current environment using `pip install -r requirements.txt`
+- If planning to use DeepCell with 3DCellComposer (see note about required access token below), note that DeepCell requires 'tensorflow' which currently is not supported for python versions greater than 3.12.  If you are running a later version of python, you can create a conda environment that uses an earlier python version by doing
+``bash
+conda create --name 3DCellComposer python=3.9.13
+conda activate 3DCellComposer
+```
+- 3DCellComposer can use either DeepCell or Cellpose to perform 2D segmentations.  Install the required packages one of two ways:
+  (Recommended) Install required packages (note this adds them to your current environment):
+``bash
+pip install -r requirements.txt
+```
       or
-  Create a new conda environment using `conda create - 3DCellComposer`
-- The software was tested on Python 3.8  and 3.9 on Ubuntu 18.04.5 LTS and MacOS 14.7.4
+  (If your python version is 3.12 or below) Create a new conda environment from a specification file:
+``bash
+conda env create -f environment.yml
+```
+- The software was tested on Python 3.8 and 3.9 on Ubuntu 18.04.5 LTS and MacOS 14.7.4 and 14.7.6
+
+- Note: Segmentation with DeepCell requires an access token that can be obtained at https://users.deepcell.org/.  The token needs to be added to your environment using ``bash
+export DEEPCELL_ACCESS_TOKEN=<token_value>
+```
 
 ### Command Structure
 3DCellComposer is executed with a command like the following:
@@ -82,10 +82,10 @@ default=False
 
 **--segmentation_method**
 **Description**: Choose the 2D segmentation method.
-      - "deepcell" - Employs DeepCell segmentation, which achieved the highest performance in our evaluation.
-      - "compare" - Compares and selects the best method from among 7 different options, which may result in a longer processing time.
-      - "custom" - Utilizes a user-provided segmentation method, for which an empty wrapper with instructions is supplied in `3DCellComposer/segmentation_2D/wrapper/custom_segmentation_wrapper.py`.         
-**Format**: String (one of "deepcell", "compare", "custom")
+      - "deepcell" - Employs DeepCell 2D segmentation, which achieved the highest performance in our evaluation.
+      - "cellpose" - Employs Cellpose 2D segmentation.
+      - "custom" - Utilizes a user-provided segmentation method, for which an empty wrapper with instructions is supplied in `3DCellComposer/segmentation_2D/wrapper/custom_segmentation_wrapper.py`.
+**Format**: String (one of "deepcell", cellpose", "custom")
 **Default**: "deepcell"
 
 **--results_path**
@@ -170,6 +170,13 @@ default=False
 **Format**: True or False
 default=False
 
+**--clear_cache**
+**Description: 3DCellComposer saves intermediate files to save time when rerunning or resuming
+         an interrupted run.  Setting this option to True deletes those files to start from
+        scratch (necessary if significant changes in options are made)
+**Format**: True or False
+default=False
+
 ### Optional arguments for optimizing 2D segmentation
 
 **--maxima_threshold**
@@ -193,14 +200,30 @@ default="both"
 Here is an example of a complete command using the `3DCellComposer` script:
 
 ```bash
-python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell"
+python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --results_path "myresults"
 ```
 
-In this command, the script processes the image located at `./data/3D_IMC_image.ome.tiff`, utilizing Ir191 as the nuclear marker, the sum of In115, Y89, Tb159 as the cytoplasmic markers, and the sum of La139, Pr141, Eu151, Gd160, Dy162 as the cell membrane markers. The script employs DeepCell as the 2D segmentation model.
+In this command, the script processes the image located at `./data/3D_IMC_image.ome.tiff`, utilizing Ir191 as the nuclear marker, the sum of In115, Y89, Tb159 as the cytoplasmic markers, and the sum of La139, Pr141, Eu151, Gd160, Dy162 as the cell membrane markers. The script employs DeepCell as the 2D segmentation model, and the results are stored in the specified folder within the current folder.
 
+## Using the PyPI package
+
+To use the package, 
+```bash
+pip install ThreeDCellComposer
+```
+
+To call the function in python,
+```bash
+from ThreeDCellComposer.ThreeDCellComposer import ThreeDCellComposer
+
+ThreeDCellComposer(image_path,nucleus_channel_marker_list,cytoplasm_channel_marker_list,membrane_channel_marker_list,segmentation_method)
+```
+where the channel lists are strings consisting of the names (not numbers) of the channels to be used for segmentation. Only 'deepcell' is supported as the segmentation_method by the PyPI package at this time. Additional optional arguments are described below.
+
+'run_3DCellComposerUsingPackage.py' is an example python script that calls ThreeDCellComposer. 
 
 ## Contact
 
 Robert F. Murphy - murphy@cmu.edu\
-Haoran Chen - haoran.chen@stjude.org
+Haoran Chen - haoranchcmu@gmail.com
 
