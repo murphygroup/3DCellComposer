@@ -1,4 +1,4 @@
-p# 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
+# 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen, Ted Chang, Matthew Ruffalo and Robert F. Murphy\
 Carnegie Mellon University\
 V1.5.2 May 27, 2025
