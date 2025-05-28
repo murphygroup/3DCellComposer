@@ -26,6 +26,8 @@ Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
         meshing_3D.py
          1.2 February 8, 2024 R.F.Murphy
         created PyPI package
+         1.5.1 May 27, 2025 R.F.Murphy
+        added downsample support
 """
 
 def parse_marker_list(arg):
@@ -100,11 +102,11 @@ def process_segmentation_masks(cell_mask_all_axes,
 	return best_quality_score, best_metrics, best_cell_mask, best_nuclear_mask
 
 
-def ThreeDCellComposer(image_path, nucleus_channel_marker_list, cytoplasm_channel_marker_list, membrane_channel_marker_list, segmentation_method):
+def ThreeDCellComposer(image_path, nucleus_channel_marker_list, cytoplasm_channel_marker_list, membrane_channel_marker_list, segmentation_method, downsample_vector):
 	# Process the image
 	print("ThreeDCellComposer v1.1")
 	print("Generating combined channel files for segmentation...")
-	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,nucleus_channel_marker_list,cytoplasm_channel_marker_list,membrane_channel_marker_list)
+	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,nucleus_channel_marker_list,cytoplasm_channel_marker_list,membrane_channel_marker_list,downsample_vector)
 	voxel_size = extract_voxel_size_from_tiff(image_path)
 	print('Voxel sizes:',voxel_size)
 	

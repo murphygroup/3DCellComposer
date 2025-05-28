@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from deepcell.applications import Mesmer
 import numpy as np
 import math
 import pickle
@@ -8,10 +7,6 @@ import os
 from datetime import datetime
 import time
 
-# Initialize TensorFlow
-from tensorflow.compat.v1 import ConfigProto, InteractiveSession
-from tensorflow.keras.models import load_model
-import tensorflow as tf
 
 """
 WRAPPER TO PERFORM 2D SEGMENTATIONS ALONG ALL AXES USING DEEPCELL
@@ -25,6 +20,10 @@ Version: 1.5 March 7, 2025 R.F.Murphy
         allow adjustable minimum slice padding
 Version: 1.5.1 March 31, 2025 R.F.Murphy
         when sampling slices, sample in the middle of the interval
+Version: 1.5.2 May 26, 2025 R.F.Murphy
+        convert deepcell_only.py to deepmethods.py
+        add up to date support for cellpose
+        only import packages needed depending on the method chosen
 """
 
 model_path = Path("/opt/.keras/models/0_12_9/MultiplexSegmentation")
@@ -67,11 +66,12 @@ def fill_in_slices3D(sampled_preds, desired_shape):
     print(full.shape)
     return full[0:desired_shape[0],0:desired_shape[1],0:desired_shape[2]]
 
-def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, chunk_size=100, results_path=Path('results'), maxima_threshold=0.075, interior_threshold=0.2, compartment='both', min_slice_padding='512', dtype='float32'):
+def deep_segmentation_2D(method, im1, im2, axis, voxel_size, sampling_interval=3, chunk_size=100, results_path=Path('results'), maxima_threshold=0.075, interior_threshold=0.2, compartment='both', min_slice_padding='512', dtype='float32'):
     """
     Perform 2D segmentations with slice sampling
     """
 
+    #print(im1.shape,im2.shape)
     #print(type(im1),type(im2))
     #print(np.min(im1),np.max(im1))
     #print(np.min(im2),np.max(im2))
@@ -104,12 +104,18 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
     if model_path.is_dir():
         model = load_model(model_path)
     
-    config = ConfigProto()
-    config.gpu_options.allow_growth = True
-    session = InteractiveSession(config=config)
-    config.gpu_options.per_process_gpu_memory_fraction = 0.9
-    tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-    app = Mesmer(model=model)
+    if method=="deepcell":
+        from deepcell.applications import Mesmer
+        # Initialize TensorFlow
+        from tensorflow.compat.v1 import ConfigProto, InteractiveSession
+        from tensorflow.keras.models import load_model
+        import tensorflow as tf
+        config = ConfigProto()
+        config.gpu_options.allow_growth = True
+        session = InteractiveSession(config=config)
+        config.gpu_options.per_process_gpu_memory_fraction = 0.9
+        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+        app = Mesmer(model=model)
     
     print(f'Segmenting in {axis} direction with sampling interval {sampling_interval}...')
     
@@ -117,7 +123,7 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
     # start with middle slice of the sampling interval
     startslice = math.floor(sampling_interval/2)
     desired_slices = range(startslice, len(im), sampling_interval)
-    print(desired_slices)
+    #print(desired_slices)
     predictions = []
 
     for i in desired_slices:
@@ -126,23 +132,19 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
             if i==desired_slices[0]:
                 print(f"Padded shape: {padded_slice.shape}")
             tstart = time.time()
-            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both')
-            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'maxima_threshold': maxima_threshold})
-            #expslice = np.expand_dims(padded_slice, 0)
-            #print(f"Expanded slice shape: {expslice.shape}")
-            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='whole-cell', postprocess_kwargs_whole_cell={'maxima_threshold': 0.2})
-            pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment=compartment, postprocess_kwargs_whole_cell={'interior_threshold': interior_threshold, 'maxima_threshold': maxima_threshold})
-            #setting to whole-cell only returns x,y,1 instead of x,y,2 so dup
-            #print(pred.shape)
-            pred = np.repeat(pred,2,axis=3)
-            #print(pred.shape)
-            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
-            #pred = app.predict(np.expand_dims(padded_slice, 0), image_mpp=pixel_size, compartment='cytoplasm', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
+            slice = np.expand_dims(padded_slice, 0)
+            if method=="cellpose":
+                pred = pred_cellpose(slice, pixel_size, compartment)
+            elif method=="deepcell":
+                pred = pred_deepcell(app, slice, pixel_size, compartment, interior_threshold, maxima_threshold)
+            elif method=="custom":
+                pred = pred_custom(slice, pixel_size, compartment)
+            else:
+                print("invalid segmentation method specified")
+                quit()
             pred = pred[:, :im.shape[1], :im.shape[2], :]  # Crop back to orig
             if not i%chunk_size:
-                print(f'Segmented slice {i} of {len(im)}')
-                #print(f"max in slice {i} is {np.max(pred)}")
-                #print(pred.shape)
+                print(f'Segmented slice {i} of {len(im)}: #cells={len(np.unique(pred)}')
             if i == desired_slices[0]:
                 tend = time.time()
                 etime = tend-tstart
@@ -179,3 +181,51 @@ def deepcell_segmentation_2D(im1, im2, axis, voxel_size, sampling_interval=3, ch
     
     return cell_mask, nuc_mask
 
+def pred_deepcell(app, slice, pixel_size, compartment, interior_threshold, maxima_threshold):
+            #pred = app.predict(slice, image_mpp=pixel_size, compartment='both')
+            #pred = app.predict(slice, image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'maxima_threshold': maxima_threshold})
+            #expslice = slice
+            #print(f"Expanded slice shape: {expslice.shape}")
+            #pred = app.predict(slice, image_mpp=pixel_size, compartment='whole-cell', postprocess_kwargs_whole_cell={'maxima_threshold': 0.2})
+            pred = app.predict(slice, image_mpp=pixel_size, compartment=compartment, postprocess_kwargs_whole_cell={'interior_threshold': interior_threshold, 'maxima_threshold': maxima_threshold})
+            #setting to whole-cell only returns x,y,1 instead of x,y,2 so dup
+            #print(pred.shape)
+            pred = np.repeat(pred,2,axis=3)
+            #print(pred.shape)
+            #pred = app.predict(slice, image_mpp=pixel_size, compartment='both', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
+            #pred = app.predict(slice, image_mpp=pixel_size, compartment='cytoplasm', postprocess_kwargs_whole_cell={'interior_threshold': 0.5})
+            return pred
+
+
+def pred_cellpose(im, pixel_size, compartment):
+    import os
+    from os.path import join
+    from cellpose.io import imread, imsave
+    im1 = np.squeeze(im[0,:,:,0])
+    #print(np.min(im1),np.max(im1))
+    im1 = im1.astype(np.uint16)
+    #print(np.min(im1),np.max(im1))
+    im2 = np.squeeze(im[0,:,:,1])
+    #print(np.min(im2),np.max(im2))
+    im2 = im2.astype(np.uint16)
+    #print(np.min(im2),np.max(im2))
+    im = np.stack((im1,im2))
+    #im = np.stack((im1,im2),axis=2)
+    #print(im.shape)
+
+    diam = int(20/pixel_size)
+
+    file_dir = "/tmp/"
+    imsave(join(file_dir,"cytoplasm.tif"),im1)
+    imsave(join(file_dir,"nucleus.tif"),im2)
+    method = "Cellpose-3.1.1.1"
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    os.system(join(dir_path, 'run_' + method + '.sh ' + file_dir + ' ' + str(diam)))
+    mask1=imread((join(file_dir,'mask_Cellpose-3.1.1.1.tif')))
+    mask2=imread((join(file_dir,'nuclear_mask_Cellpose-3.1.1.1.tif')))
+    #print(len(np.unique(mask1)),len(np.unique(mask2)))
+    outmask = np.zeros((1,mask1.shape[0],mask1.shape[1],2))
+    outmask[0,:,:,0] = mask1
+    outmask[0,:,:,1] = mask2
+    #print(outmask.shape)
+    return outmask

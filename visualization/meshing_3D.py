@@ -12,6 +12,8 @@ WRAPPER TO GENERATE BLENDER FILES FOR VISUALIZATION
 Author: Haoran Chen
 Version: 1.1 December 14, 2023 Haoran Chen
         Fix output dir and update color map to 0-1
+Version: 1.2 May 27, 2025 R.F.Murphy
+        Trap error in creating triangular meshes
 """
 
 
@@ -103,7 +105,7 @@ def meshing_3D(mask, mask_colored, num_of_col, output_path: Path):
 	all_groups = []
 	all_colors = []
 	offset = 0  # To keep track of the index offset for faces when combining multiple cells
-	
+
 	for cell_index in cell_coords.index:
 		current_coords = cell_coords[cell_index]
 		current_mask = np.zeros(mask.shape)
@@ -123,7 +125,12 @@ def meshing_3D(mask, mask_colored, num_of_col, output_path: Path):
 				start_2D_contours = [convert_2D_contour_to_3D(contour, z_start) for contour in start_slice_mesh]
 				start_triangles = [triangulate_2D_contour(contour) for contour in start_2D_contours]
 				start_2D_contours = np.vstack(start_2D_contours)
-				start_triangles = np.vstack(start_triangles)
+				try:
+					start_triangles = np.vstack(start_triangles)
+				except:
+					print('Error creating Blender files')
+					return
+
 				verts = np.vstack([verts, start_2D_contours])
 				start_triangles += offset
 				offset += len(start_2D_contours)

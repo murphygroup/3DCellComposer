@@ -4,6 +4,7 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 import json
+from pathlib import Path
 from ThreeDCellComposer.ThreeDCellComposer import ThreeDCellComposer
 
 """
@@ -81,7 +82,11 @@ def main():
 						help="minimum size to pad slices to")
 	
 	args = parser.parse_args()
-	ThreeDCellComposer(args.image_path,args.nucleus_channel_marker_list,args.cytoplasm_channel_marker_list,args.membrane_channel_marker_list,args.segmentation_method,args.results_path,args.chunk_size,args.sampling_interval,args.max_tries,args.quality_threshold,args.sampling_reduce,args.JI_range,args.skip_eval,args.skip_blender,args.downsample_vector,args.maxima_threshold,args.interior_threshold,args.compartment,args.crop_limits,args.min_slice_padding)
+	dsv = args.downsample_vector
+	downsample_vector = (int(dsv[0]),int(dsv[1]),int(dsv[2]))
+
+	#ThreeDCellComposer(args.image_path,args.nucleus_channel_marker_list,args.cytoplasm_channel_marker_list,args.membrane_channel_marker_list,args.segmentation_method,args.results_path,args.chunk_size,args.sampling_interval,args.max_tries,args.quality_threshold,args.sampling_reduce,args.JI_range,args.skip_eval,args.skip_blender,args.downsample_vector,args.maxima_threshold,args.interior_threshold,args.compartment,args.crop_limits,args.min_slice_padding)
+	ThreeDCellComposer(args.image_path,args.nucleus_channel_marker_list,args.cytoplasm_channel_marker_list,args.membrane_channel_marker_list,args.segmentation_method,downsample_vector)
 	print("3DCellComposer completed.")
 
 

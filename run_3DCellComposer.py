@@ -5,6 +5,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 import json
 from datetime import datetime
+import glob
+import os
+from os.path import join
 
 from ome_utils import find_ome_tiffs
 import pickle
@@ -12,7 +15,7 @@ import pickle
 import tifffile
 
 from segmentation_2D.preprocessing import *
-from segmentation_2D.deepcell_only import deepcell_segmentation_2D
+from segmentation_2D.deepmethods import deep_segmentation_2D
 from segmentation_2D.wrapper.custom_segmentation_wrapper import custom_segmentation
 from segmentation_2D.installation.install_all_methods import install_segmentation_methods
 from segmentation_2D.all_methods_segmentation import *
@@ -49,6 +52,14 @@ Version: 1.5 March 7, 2025 R.F.Murphy
 Version: 1.5.1
         Fix bug that deleted one slice from each direction when cropping
         Add --skipYZ option to just use XY and XZ slicing
+Version: 1.5.2 May 28, 2025 R.F.Murphy
+        Handle segmentation resulting in no cells
+        Trap triangular meshing errors in Blender file creation
+        Specify disksizes and areasizes in call to CSE3D
+        Save matching results pickle file in case of rerun
+        Add --clear_cache option to remove saved pickle files on rerun
+        Remove compare option
+        Don't save results in trial0 folder if not using sampling
 """
 
 def parse_marker_list(arg):
@@ -73,41 +84,63 @@ def process_segmentation_masks(cell_mask_all_axes,
                                results_path,
                                downsample_vector):
 	#JI_range = np.linspace(min_JI, max_JI, num_steps)
-	print("Matching 2D cells in adjacent slices for each axis...")
-	axestouse = list(cell_mask_all_axes.keys())
-	matched_2D_stack_all_JI = {}
-	for JI in JI_range:
-		matched_2D_stack_all_JI[JI] = {}
-		for axis in axestouse:
-			matched_2D_stack_axis = matching_cells_2D(cell_mask_all_axes[axis], JI)
-			matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
-	print(f"{datetime.now()} Matching and repairing 3D cells...")
-	matched_3D_all_JI = {}
-	for JI in JI_range:
-		matched_2D_stack_XY = matched_2D_stack_all_JI[JI]['XY']
-		matched_2D_stack_XZ = matched_2D_stack_all_JI[JI]['XZ']
-		if axestouse==3:
-			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
-		else:
-			 #if YZ not calculated, just use XZ
-			matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
-		matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
-		matched_3D_all_JI[JI] = matched_3D_cell_mask
+	m2dfilename = results_path / ('matched2Dcells.pkl')
+	if os.path.exists(m2dfilename):
+		with open(m2dfilename, 'rb') as ss_file:
+			matched_2D_stack_all_JI = pickle.load(ss_file)
+	else:
+		print("Matching 2D cells in adjacent slices for each axis...")
+		axestouse = list(cell_mask_all_axes.keys())
+		matched_2D_stack_all_JI = {}
+		for JI in JI_range:
+			matched_2D_stack_all_JI[JI] = {}
+			for axis in axestouse:
+				matched_2D_stack_axis = matching_cells_2D(cell_mask_all_axes[axis], JI)
+				matched_2D_stack_all_JI[JI][axis] = matched_2D_stack_axis
+		with open(m2dfilename, 'wb') as ss_file:
+			pickle.dump(matched_2D_stack_all_JI, ss_file)
 
-	print(f"{datetime.now()} Matching 3D nuclei...")
-	final_matched_3D_cell_mask_JI = {}
-	final_matched_3D_nuclear_mask_JI = {}
-	for JI in JI_range:
-		matched_3D_cell_mask = matched_3D_all_JI[JI]
-		final_matched_3D_cell_mask, final_matched_3D_nuclear_mask = matching_nuclei_3D(matched_3D_cell_mask,
-		                                                                               nuclear_mask_all_axes['XY'])
-		#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
-		#final_matched_3D_cell_mask = fill_in_slices3D(final_matched_3D_cell_mask, nucleus_channel.shape)
-		#final_matched_3D_nuclear_mask = fill_in_slices3D(final_matched_3D_nuclear_mask, nucleus_channel.shape)
-		#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
-		final_matched_3D_cell_mask_JI[JI] = upsamplemask(final_matched_3D_cell_mask,downsample_vector,image.shape)
-		final_matched_3D_nuclear_mask_JI[JI] = upsamplemask(final_matched_3D_nuclear_mask,downsample_vector,image.shape)
-		#print(final_matched_3D_cell_mask_JI[JI].shape)
+	m3dfilename = results_path / ('matched3Dcells.pkl')
+	if os.path.exists(m3dfilename):
+		with open(m3dfilename, 'rb') as ss_file:
+			matched_3D_all_JI = pickle.load(ss_file)
+	else:
+		print(f"{datetime.now()} Matching and repairing 3D cells...")
+		matched_3D_all_JI = {}
+		for JI in JI_range:
+			matched_2D_stack_XY = matched_2D_stack_all_JI[JI]['XY']
+			matched_2D_stack_XZ = matched_2D_stack_all_JI[JI]['XZ']
+			if axestouse==3:
+				matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['YZ']
+			else:
+				 #if YZ not calculated, just use XZ
+				matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
+			matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
+			matched_3D_all_JI[JI] = matched_3D_cell_mask
+		with open(m3dfilename, 'wb') as ss_file:
+			pickle.dump(matched_3D_all_JI, ss_file)
+
+	m3dbfilename = results_path / ('matched3Dboth.pkl')
+	if os.path.exists(m3dbfilename):
+		with open(m3dbfilename, 'rb') as ss_file:
+			final_matched_3D_cell_mask_JI,final_matched_3D_nuclear_mask_JI = pickle.load(ss_file)
+	else:
+		print(f"{datetime.now()} Matching 3D nuclei...")
+		final_matched_3D_cell_mask_JI = {}
+		final_matched_3D_nuclear_mask_JI = {}
+		for JI in JI_range:
+			matched_3D_cell_mask = matched_3D_all_JI[JI]
+			final_matched_3D_cell_mask, final_matched_3D_nuclear_mask = matching_nuclei_3D(matched_3D_cell_mask,
+		                                                                	               nuclear_mask_all_axes['XY'])
+			#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
+			#final_matched_3D_cell_mask = fill_in_slices3D(final_matched_3D_cell_mask, nucleus_channel.shape)
+			#final_matched_3D_nuclear_mask = fill_in_slices3D(final_matched_3D_nuclear_mask, nucleus_channel.shape)
+			#print(final_matched_3D_cell_mask.shape,final_matched_3D_nuclear_mask.shape)
+			final_matched_3D_cell_mask_JI[JI] = upsamplemask(final_matched_3D_cell_mask,downsample_vector,image.shape)
+			final_matched_3D_nuclear_mask_JI[JI] = upsamplemask(final_matched_3D_nuclear_mask,downsample_vector,image.shape)
+			#print(final_matched_3D_cell_mask_JI[JI].shape)
+		with open(m3dbfilename, 'wb') as ss_file:
+			pickle.dump((final_matched_3D_cell_mask_JI,final_matched_3D_nuclear_mask_JI), ss_file)
 
 	if skip_eval:
 		print("{datetime.now()} Skipping 3D cell segmentation evaluation...")
@@ -138,7 +171,7 @@ def process_segmentation_masks(cell_mask_all_axes,
 			print(f'For JI threshold = {JI}')
 			final_matched_3D_cell_mask = final_matched_3D_cell_mask_JI[JI]
 			final_matched_3D_nuclear_mask = final_matched_3D_nuclear_mask_JI[JI]
-			try:
+			if len(np.unique(final_matched_3D_cell_mask))-1>0:
 				quality_score, metrics = seg_evaluation_3D(final_matched_3D_cell_mask,
 				                                   final_matched_3D_nuclear_mask,
 				                                   nucleus_channel,
@@ -147,7 +180,8 @@ def process_segmentation_masks(cell_mask_all_axes,
 				                                   image,
 				                                   voxel_size,
 				                                   './evaluation/model')
-			except:
+			else:
+				print("No cells in segmentation.")
 				quality_score =- 1
 				metrics = []
 			print(f'- quality score = {quality_score}')
@@ -250,9 +284,9 @@ def main():
 	                    help="A list of cytoplasmic marker(s) in multiplexed image as input for segmentation")
 	parser.add_argument("membrane_channel_marker_list", type=parse_marker_list,
 	                    help="A list of cell membrane marker(s) in multiplexed image as input for segmentation")
-	parser.add_argument("--segmentation_method", type=str, choices=["deepcell", "compare", "custom"],
+	parser.add_argument("--segmentation_method", type=str, choices=["deepcell", "cellpose", "custom"],
 	                    default="deepcell",
-	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, 'compare' to compare and select the best among 7 methods, or 'custom' to use a user-provided method.")
+	                    help="Choose 2D segmentation method: 'deepcell' for DeepCell segmentation which performed the best in our evaluation, or 'custom' to use a user-provided method.")
 	parser.add_argument('--results_path', type=Path, default=Path('results'),
 						help="Path where results will be written")
 	parser.add_argument('--chunk_size', type=int, default=100,
@@ -289,8 +323,10 @@ def main():
 						help="minimum size to pad slices to")
 	parser.add_argument('--skipYZ', type=bool, default=False,
 						help="skip YZ slicing")
+	parser.add_argument('--clear_cache', type=bool, default=False,
+						help="delete saved intermediate files from a previous run from the results_path before starting")
 
-	CCversion = "v1.5.1"
+	CCversion = "v1.5.2"
 
 	#return is type argparse.Namespace
 	args = parser.parse_args()
@@ -330,11 +366,24 @@ def main():
 		f.write(f"crop_limits:{args.crop_limits}\n")
 		f.write(f"min_slice_padding:{args.min_slice_padding}\n")
 		f.write(f"skipYZ:{args.skipYZ}\n")
+		f.write(f"clear_cache:{args.clear_cache}\n")
 
-	#with open(args.results_path / 'command_line_settings.txt', 'w') as f:
+	#with open(args.results_path / 'command_line_settings2.txt', 'w') as f:
+	#	f.write(f"3DCellComposer version: {CCversion}\n")
+	#	f.write(f"Program start: {datetime.now()}\n")
 	#	for obj in dir(args):
         #                f.write(f"{obj}:{args.{obj}}\n")
 
+	print(f"3DCellComposer {CCversion}")
+	if args.clear_cache:
+		#try:
+		if 1==1:
+			for file in glob.glob(join(args.results_path,'saved_segmentations*.pkl')):
+				os.remove(file)
+			for file in glob.glob(join(args.results_path,'matched*.pkl')):
+				os.remove(file)
+#		except:
+#			pass
 	JI_list = args.JI_range
 	#print(JI_list)
 	JI_range = np.linspace(float(JI_list[0]), float(JI_list[1]), int(JI_list[2]))
@@ -347,7 +396,6 @@ def main():
 	crop_limits = list(map(int, args.crop_limits))
 
 	# Process the image
-	print(f"3DCellComposer {CCversion}")
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
 																						   args.results_path,
@@ -358,7 +406,7 @@ def main():
 	print(f"Marker channels shape: {nucleus_channel.shape}, All channels shape: {image.shape}")
 	voxel_size = extract_voxel_size_from_tiff(image_path)
 	#values are returned X,Y,Z but image is Z,Y,X so reverse
-	vsi =(int(voxel_size[2]),int(voxel_size[1]),int(voxel_size[0]))
+	vsi =(float(voxel_size[2]),float(voxel_size[1]),float(voxel_size[0]))
 	#vsi = list(map(int, voxel_size))
 	print(f"Original voxel size Z,Y,X: {vsi}")
 	if any(x!=1 for x in downsample_vector):
@@ -390,29 +438,18 @@ def main():
 	else:
 		axestouse = ['XY', 'XZ', 'YZ']
 		print("Segmenting 2D slices across three axes...")
-	if args.segmentation_method in ["deepcell", "custom"]:
+	if args.segmentation_method in ["deepcell", "cellpose", "custom"]:
 
 		while max_tries > 0:
 			# For a single method
 
-			if args.segmentation_method == "deepcell":
-
-				cell_mask_all_axes = {}
-				nuclear_mask_all_axes = {}
-				for axis in axestouse:
-					cell_mask_axis, nuclear_mask_axis = deepcell_segmentation_2D(nucleus_down, membrane_down, axis,
-																				voxel_down, sampling_interval[axis], args.chunk_size, args.results_path, args.maxima_threshold, args.interior_threshold, args.compartment, args.min_slice_padding)
-					cell_mask_all_axes[axis] = cell_mask_axis
-					nuclear_mask_all_axes[axis] = nuclear_mask_axis
-
-			elif args.segmentation_method == "custom":
-				cell_mask_all_axes = {}
-				nuclear_mask_all_axes = {}
-				for axis in axestouse:
-					cell_mask_axis, nuclear_mask_axis = custom_segmentation(nucleus_down, cytoplasm_down,
-																			membrane_channel, axis, voxel_down)
-					cell_mask_all_axes[axis] = cell_mask_axis
-					nuclear_mask_all_axes[axis] = nuclear_mask_axis
+			cell_mask_all_axes = {}
+			nuclear_mask_all_axes = {}
+			for axis in axestouse:
+				cell_mask_axis, nuclear_mask_axis = deep_segmentation_2D(args.segmentation_method, nucleus_down, membrane_down, axis, voxel_down, sampling_interval[axis], args.chunk_size, args.results_path, args.maxima_threshold, args.interior_threshold, args.compartment, args.min_slice_padding)
+				cell_mask_all_axes[axis] = cell_mask_axis
+				nuclear_mask_all_axes[axis] = nuclear_mask_axis
+                        
 			best_quality_score, best_metrics, best_cell_mask_final, best_nuclear_mask_final = process_segmentation_masks(
 				cell_mask_all_axes,
 				nuclear_mask_all_axes,
@@ -425,12 +462,12 @@ def main():
 				args.skip_eval,
 				args.results_path,
 				downsample_vector)
-                        
+
 			if not args.skip_eval:
 				print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
-				trialpath = args.results_path / ('trial' + str(args.max_tries-max_tries))
-				#print(trialpath)
-				writeresults(trialpath,best_cell_mask_final,best_nuclear_mask_final,best_metrics,best_quality_score)
+				if max(sampling_interval.values())>1:
+					trialpath = args.results_path / ('trial' + str(args.max_tries-max_tries))
+					writeresults(trialpath,best_cell_mask_final,best_nuclear_mask_final,best_metrics,best_quality_score)
 
 			if best_quality_score > args.quality_threshold or max(sampling_interval.values())==1 or max_tries ==1:
 				break
@@ -440,8 +477,6 @@ def main():
 					sampling_interval[axis] = int(max(sampling_interval[axis] / sampling_reduce,1))
 				print(f"Quality score is too low, Sampling interval is reduced to {sampling_interval}")
 				print(f"Tries left: {max_tries}")
-
-	
 
 	
 	elif args.segmentation_method == "compare":

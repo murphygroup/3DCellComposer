@@ -3,10 +3,12 @@ import tifffile
 import os
 import numpy as np
 import xml.etree.ElementTree as ET
+import skimage
 
 '''
 version 1.3: February 19, 2025 R.F.Murphy
     add downsample support
+'''
 
 def extract_voxel_size_from_tiff(file_path):
     # Read OME-TIFF metadata

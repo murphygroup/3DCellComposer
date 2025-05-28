@@ -11,6 +11,8 @@ Version: 1.1 December 14, 2023 R.F.Murphy, Haoran Chen
          Remove saving intermediate binary image file to avoid error in the next run
          1.2 December 24, 2023 R.F.Murphy
          Use CSE3D from CellSegmentationEvaluator
+         1.5.2 May 17, 2025 R.F.Murphy
+         Specify disksizes and areasizes in call to CSE3D
 """
 
 def seg_evaluation_3D(cell_matched_mask,
@@ -48,7 +50,7 @@ def seg_evaluation_3D(cell_matched_mask,
 
 	vox_size = float(voxel_size[0]) * float(voxel_size[1]) * float(voxel_size[2])
 
-	metrics = CSE3D(img_channels, metric_mask, PCA_model, img4thresh, vox_size)
+	metrics = CSE3D(img_channels, metric_mask, PCA_model, img4thresh, vox_size,[1,2,10,3],[20000,1000])
 	weighted_score = metrics["QualityScore"]
         
 	return weighted_score, metrics
