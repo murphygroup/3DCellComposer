@@ -10,6 +10,8 @@ Version: 1.1 December 14, 2023 Haoran Chen
         Fix output dir and update color map to 0-1
          1.2 December 27, 2023 R.F.Murphy
         Fix output dir for .obj file
+Version: 1.5.2 May 28, 2025 R.F.Murphy
+        Trap errors in triangle mesh creation
 """
 
 
@@ -119,7 +121,11 @@ def meshing_3D(mask, mask_colored, num_of_col, output_path):
 				start_2D_contours = [convert_2D_contour_to_3D(contour, z_start) for contour in start_slice_mesh]
 				start_triangles = [triangulate_2D_contour(contour) for contour in start_2D_contours]
 				start_2D_contours = np.vstack(start_2D_contours)
-				start_triangles = np.vstack(start_triangles)
+				try:
+					start_triangles = np.vstack(start_triangles)
+				except:
+					print('Error creating Blender files')
+					return
 				verts = np.vstack([verts, start_2D_contours])
 				start_triangles += offset
 				offset += len(start_2D_contours)

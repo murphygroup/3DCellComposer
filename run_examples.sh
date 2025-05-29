@@ -19,12 +19,19 @@
 # (https://docs.hubmapconsortium.org/clt/install-hubmap-clt.html)
 
 
-#outputs will be in folder specified by --results_path (IMCdeepcell)
-# this takes about six hours on a single cpu with gpu
-python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --chunk_size "10" --skipYZ "True" --min_slice_padding "128" --results_path IMCdeepcell
+# this command processes the full image and takes about eight hours on a single
+# cpu with gpu
+# outputs will be in folder specified by --results_path (IMCdeepcell)
+#python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --chunk_size "10" --skipYZ "True" --min_slice_padding "128" --results_path IMCdeepcell
 
-#outputs will be to the same folder as the input image
-# this takes about ten hours on a single cpu with gpu
-#uncomment these lines to run
+# this command uses only part of the image (as specified by the --crop_limits
+# option) in order to more rapidly verify proper installation and show the
+# results; it takes only a little over an hour
+# outputs will be in folder IMCcropdeepcell
+python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --chunk_size "10" --skipYZ "True" --min_slice_padding "128" --results_path IMCcropdeepcell --crop_limits "0,-1,0,256,0,256"
+
+# this command uses the older pip package, and takes around 16 hours.
+# outputs will be to a "results" subfolder in the original image folder
+# 
 #pip install ThreeDCellComposer
 #python run_3DCellComposerUsingPackage.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell"

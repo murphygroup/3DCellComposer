@@ -203,7 +203,9 @@ Here is an example of a complete command:
 python run_3DCellComposer.py ./data/3D_IMC_image.ome.tiff "Ir191" "In115,Y89,Tb159" "La139,Pr141,Eu151,Gd160,Dy162" --segmentation_method "deepcell" --results_path "myresults"
 ```
 
-Note that the example image file 3D_IMC_image.ome.tiff is too large to be stored with normal github.  It is therefore stored with git lfs which places a pointer to the actual file into the github repo.  See the comments in the file "run_examples.sh" for ways to obtain the image.
+Note that the example image file 3D_IMC_image.ome.tiff is too large to be stored with normal github.  It is therefore stored with git lfs which places a pointer to the actual file into the github repo.  
+
+**The "run_examples.sh" gives example runs and the comments in the file describe ways to obtain the example image.**
 
 In this command, the script processes the image located at `./data/3D_IMC_image.ome.tiff`, utilizing Ir191 as the nuclear marker, the sum of In115, Y89, Tb159 as the cytoplasmic markers, and the sum of La139, Pr141, Eu151, Gd160, Dy162 as the cell membrane markers. The script employs DeepCell as the 2D segmentation model, and the results are stored in the specified folder within the current folder.
 
