@@ -144,7 +144,7 @@ def deep_segmentation_2D(method, im1, im2, axis, voxel_size, sampling_interval=3
                 quit()
             pred = pred[:, :im.shape[1], :im.shape[2], :]  # Crop back to orig
             if not i%chunk_size:
-                print(f'Segmented slice {i} of {len(im)}: #cells={len(np.unique(pred)}')
+                print(f'Segmented slice {i} of {len(im)}: #cells={len(np.unique(pred))}')
             if i == desired_slices[0]:
                 tend = time.time()
                 etime = tend-tstart
