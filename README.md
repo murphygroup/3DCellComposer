@@ -1,7 +1,7 @@
 # 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen, Ted Chang, Matthew Ruffalo and Robert F. Murphy\
 Carnegie Mellon University\
-V1.5.2 May 27, 2025
+V1.5.3 May 29, 2025
 
 3DCellComposer is a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose an existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
 
@@ -14,6 +14,8 @@ Changes in V1.3: Options added to support subsampling of the slices along each a
 Changes in V1.5: Added options for cropping initial image, block-wise voxel downsampling prior to segmentation,- setting specific DeepCell parameters (including whether to segment using cell channel, nuclear channel or both), and controlling the minimum padding
 
 Changes in V1.5.2: Improved installation instructions and update environment.yml and requirements.txt.  Updated Cellpose support. Removed use of pint package.
+
+Changes in V1.5.3: Added --min_slices option for specifying the minimum number of slices that a candidate cells must have in order to be considered a matched cell.
 
 ## Using the repository version
 
@@ -77,8 +79,8 @@ python run_3DCellComposer.py [image_path] [nucleus_markers] [cytoplasm_markers] 
 
 **--skipYZ**
 **Description**: Only do 2D segmentation on XY and XZ slices
-**Format*: True or False
-default=False
+**Format**: True or False
+**Default** False
 
 **--segmentation_method**
 **Description**: Choose the 2D segmentation method.
@@ -90,26 +92,33 @@ default=False
 
 **--results_path**
 **Description**: Specify path where results files will be written
-**Format*: Path
-default=Path('results')
+**Format**: Path
+**Default**: Path('results')
 
 **--crop_limits**
 **Description**: Sets a region to crop the input image before segmentation; 
         if used, must specify all 6 limits
 **Format**: quoted list of 6 integers separated by commas in the order zlo,zhi,ylo,yhi,xlo,xhi
-default="0,-1,0,-1,0,-1"	
+**Default**: "0,-1,0,-1,0,-1"	
+
+**--min_slices**
+**Description**: Sets the minimum number of z slices required for a candidate cell to be
+        accepted as a 3D cell (cannot be less than 3 otherwise corresponding nucleus
+        will be rejected as not being fully contained within the cell
+**Format**: integer
+**Default**: "4"
 
 **--min_slice_padding**
 **Description**: Sets the minimum width or height of slices used for segmentation;
         typically needed for XZ or YZ slices to meet DeepCell requirements;
         normally a power of two
 **Format**: integer
-default="512"
+**Default**: "512"
 
 **--chunk_size**
 **Description**: Specifies how often to report on slices segmented
 **Format**: integer
-default=100
+**Default**: "100"
 
 ### Optional argument for balancing or reducing voxel dimensions
 
@@ -119,7 +128,7 @@ default=100
         that voxels are cubic and all directions are equivalent; 
        resulting segmentation masks are upsampled to the original resolution before saving
 **Format**: quoted list of 3 integers separated by commas in the order Z, Y, X
-default="1,1,1"
+**Default**: "1,1,1"
 
 ### Optional arguments for reducing number of slices to segment
 
@@ -131,24 +140,24 @@ default="1,1,1"
         e.g., if X,Y,Z voxel dimensions are 0.1,0.1,0.4 microns, perhaps use '1,4,4' so that
         slices are segmented less frequently in X)
 **Format**: quoted list of 3 integers separated by commas in the order XY, XZ, YZ
-default='1,1,1'
+**Default**: '1,1,1'
 
-**--sampling_reduce*
+**--sampling_reduce**
 **Description**: Divisor to reduce sampling_interval by and resentment if quality_threshold is not 
         reached; segmentations for previously segmented slices are kept and reused
 **Format**: integer
-default=2
+**Default**: "2"
 
 **--max_tries**
 **Description**: Number of times to reduce the sampling intervals before stopping;
          Stops automatically when sampling interval reaches 1,1,1
 **Format**: type=int
-default=10
+**Default**: "10"
 
 **--quality_threshold**
 **Description**: Stops decreasing sampling interval if quality score is greater than this value
 **Format**: floating point number
-default=infinity
+**Default**: infinity
 
 ### Optional arguments for reducing compute time
 
@@ -156,44 +165,44 @@ default=infinity
 **Description**: Change the range of values of the Jaccard index that are tried for optimizing detection of overlap between cells in adjacent 2D slices;
           more intervals mean more time in the "Matching 2D cells" phase
 **Format**: quoted list of three floating point numbers (start,end,increment)
-default='0.0,0.4,5
+**Default**" "0.0,0.4,5"
 
-**--skip_eval
+**--skip_eval**
 **Description: Sets whether to call CellSegmentationEvaluator for each JI value segmentation;
          setting to True may be useful to reduce compute time (e.g., when debugging)
 **Format**: True or False
-default=False
+**Default**: False
 
 **--skip_blender**
 **Description: Sets whether to create Blender files for 3D visualization of final segmentation
          Setting to True may be useful to reduce compute time or if not needed
 **Format**: True or False
-default=False
+**Default**: False
 
 **--clear_cache**
 **Description: 3DCellComposer saves intermediate files to save time when rerunning or resuming
          an interrupted run.  Setting this option to True deletes those files to start from
         scratch (necessary if significant changes in options are made)
 **Format**: True or False
-default=False
+**Default**: False
 
 ### Optional arguments for optimizing 2D segmentation
 
 **--maxima_threshold**
 **Description**: Sets the corresponding DeepCell parameter (lower values favor more cells)
 **Format**: floating point number
-default=0.075 (which is the DeepCell default)
+**Default**: 0.075 (which is the DeepCell default)
 
 **--interior_threshold**
 **Description**: Sets the corresponding DeepCell parameter (lower values favor fewer cells)
 **Format**: floating point number
-default=0.2
+**Default**: 0.2
 
 **--compartment**
 **Description**: Sets the corresponding DeepCell parameter ("both", "whole-cell", "nuclear")
            (Used to ignore one of the input channels, if desired)
 **Format**: string
-default="both"
+**Default**: "both"
 
 
 ### Example Command

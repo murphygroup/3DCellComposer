@@ -5,6 +5,7 @@ deepcell
 hubmap-ome-utils==0.3.4
 numpy
 pandas
+protobuf==3.20.0
 scikit-image
 scipy
 tensorflow==2.8.0

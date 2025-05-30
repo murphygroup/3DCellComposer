@@ -60,6 +60,8 @@ Version: 1.5.2 May 28, 2025 R.F.Murphy
         Add --clear_cache option to remove saved pickle files on rerun
         Remove compare option
         Don't save results in trial0 folder if not using sampling
+Version: 1.5.3 May 29, 2025 R.F.Murphy
+        Add option to set minimum z slices required for 3D cell
 """
 
 def parse_marker_list(arg):
@@ -82,7 +84,8 @@ def process_segmentation_masks(cell_mask_all_axes,
                                JI_range,
                                skip_eval,
                                results_path,
-                               downsample_vector):
+                               downsample_vector,
+                               minslices):
 	#JI_range = np.linspace(min_JI, max_JI, num_steps)
 	m2dfilename = results_path / ('matched2Dcells.pkl')
 	if os.path.exists(m2dfilename):
@@ -115,7 +118,7 @@ def process_segmentation_masks(cell_mask_all_axes,
 			else:
 				 #if YZ not calculated, just use XZ
 				matched_2D_stack_YZ = matched_2D_stack_all_JI[JI]['XZ']
-			matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ)
+			matched_3D_cell_mask = matching_cells_3D(matched_2D_stack_XY, matched_2D_stack_XZ, matched_2D_stack_YZ,minslices)
 			matched_3D_all_JI[JI] = matched_3D_cell_mask
 		with open(m3dfilename, 'wb') as ss_file:
 			pickle.dump(matched_3D_all_JI, ss_file)
@@ -325,8 +328,10 @@ def main():
 						help="skip YZ slicing")
 	parser.add_argument('--clear_cache', type=bool, default=False,
 						help="delete saved intermediate files from a previous run from the results_path before starting")
+	parser.add_argument('--min_slices', type=int, default="4",
+						help="minimum number of z slices required to be considered as a 3D cell")
 
-	CCversion = "v1.5.2"
+	CCversion = "v1.5.3"
 
 	#return is type argparse.Namespace
 	args = parser.parse_args()
@@ -367,6 +372,7 @@ def main():
 		f.write(f"min_slice_padding:{args.min_slice_padding}\n")
 		f.write(f"skipYZ:{args.skipYZ}\n")
 		f.write(f"clear_cache:{args.clear_cache}\n")
+		f.write(f"min_slices:{args.min_slices}\n")
 
 	#with open(args.results_path / 'command_line_settings2.txt', 'w') as f:
 	#	f.write(f"3DCellComposer version: {CCversion}\n")
@@ -395,6 +401,8 @@ def main():
 
 	crop_limits = list(map(int, args.crop_limits))
 
+	minslices = args.min_slices
+        
 	# Process the image
 	print("Generating input channels for segmentation...")
 	nucleus_channel, cytoplasm_channel, membrane_channel, image = write_IMC_input_channels(image_path,
@@ -461,7 +469,8 @@ def main():
 				JI_range,
 				args.skip_eval,
 				args.results_path,
-				downsample_vector)
+				downsample_vector,
+				minslices)
 
 			if not args.skip_eval:
 				print(f"Quality Score of this 3D Cell Segmentation = {best_quality_score}")
@@ -510,7 +519,8 @@ def main():
 				JI_range,
 				skip_eval,
 				results_path,
-				downsample_vector)
+				downsample_vector,
+				minslices)
 
 			quality_score_list.append(method_quality_score)
 			metrics_list.append(method_metrics)

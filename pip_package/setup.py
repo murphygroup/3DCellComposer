@@ -6,7 +6,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name='ThreeDCellComposer',
-    version='1.5.2',    
+    version='1.5.3',    
     description='3D cell segmentation by composing 2D segmentations',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -23,6 +23,7 @@ setup(
         'hubmap-ome-utils==0.3.4',
         'numpy',
         'pandas',
+        'protobuf==3.20.0',
         'scikit-image',
         'scipy',
         'tensorflow==2.8.0',
