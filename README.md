@@ -27,18 +27,18 @@ The `3DCellComposer` script processes multiplexed imaging data for cell segmenta
 - Clone or download this GitHub repository.
 - Install conda and pip, if not already installed.
 - If planning to use DeepCell with 3DCellComposer (see note about required access token below), note that DeepCell requires 'tensorflow' which currently is not supported for python versions greater than 3.12.  If you are running a later version of python, you can create a conda environment that uses an earlier python version by doing
-``bash
+```bash
 conda create --name 3DCellComposer python=3.9.13
 conda activate 3DCellComposer
 ```
 - 3DCellComposer can use either DeepCell or Cellpose to perform 2D segmentations.  Install the required packages one of two ways:
   (Recommended) Install required packages (note this adds them to your current environment):
-``bash
+```bash
 pip install -r requirements.txt
 ```
       or
   (If your python version is 3.12 or below) Create a new conda environment from a specification file:
-``bash
+```bash
 conda env create -f environment.yml
 ```
 - The software was tested on Python 3.8 and 3.9 on Ubuntu 18.04.5 LTS and MacOS 14.7.4 and 14.7.6
