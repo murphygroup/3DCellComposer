@@ -7,6 +7,8 @@ FUNCTIONS FOR MATCHING 3D CELLS
 Author: Haoran Chen and Robert F. Murphy
 Version: 1.3 February 14, 2025 R.F.Murphy, Ted Zhang
         remove rotations because already done in deepcell_segmentation_2D
+         1.5.3 May 29, 2025 R.F.Murphy
+        replace hard-coded minimum of 4 slices with minslices argument
 """
 
 def compute_M(data):
@@ -23,7 +25,7 @@ def get_indices_pandas(data):
 def get_volumes_from_indices(series):
 	return series.apply(lambda x: len(x[0]))
 	
-def matching_cells_3D(mask_XY, mask_XZ, mask_YZ):
+def matching_cells_3D(mask_XY, mask_XZ, mask_YZ, minslices):
 
 	#print(mask_XY.shape,mask_XZ.shape,mask_YZ.shape)
 	#this rotation is already done in "deepcell_segmentation_2D"
@@ -63,7 +65,7 @@ def matching_cells_3D(mask_XY, mask_XZ, mask_YZ):
 
 	for cell_index in sorted_cells:
 		current_coords = cell_coords[cell_index]
-		if not np.any(segmentation_XY_repaired_binary[current_coords]) and len(np.unique(current_coords[0])) > 3:
+		if not np.any(segmentation_XY_repaired_binary[current_coords]) and len(np.unique(current_coords[0])) >= minslices:
 			Z = int(cell_index // (X_max * Y_max))
 			XY_coords_Z = XY_coords[Z]
 			z_min = min(current_coords[0])
