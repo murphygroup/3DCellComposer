@@ -31,7 +31,7 @@ The `3DCellComposer` script processes multiplexed imaging data for cell segmenta
 conda create --name 3DCellComposer python=3.9.13
 conda activate 3DCellComposer
 ```
-- 3DCellComposer can use either DeepCell or Cellpose to perform 2D segmentations.  Install the required packages one of two ways: 
+- 3DCellComposer can use either DeepCell or Cellpose to perform 2D segmentations.  Install the required packages one of two ways:\
 *** (Recommended) Install required packages (note this adds them to your current environment; use conda create/conda activate as above to create a new environment if desired):
 ```bash
 pip install -r requirements.txt
