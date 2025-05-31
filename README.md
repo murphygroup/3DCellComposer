@@ -43,7 +43,8 @@ conda env create -f environment.yml
 ```
 - The software was tested on Python 3.8 and 3.9 on Ubuntu 18.04.5 LTS and MacOS 14.7.4 and 14.7.6
 
-- Note: Segmentation with DeepCell requires an access token that can be obtained at https://users.deepcell.org/.  The token needs to be added to your environment using ``bash
+- Note: Segmentation with DeepCell requires an access token that can be obtained at <https://users.deepcell.org/>.  The token needs to be added to your environment using 
+```bash
 export DEEPCELL_ACCESS_TOKEN=<token_value>
 ```
 
