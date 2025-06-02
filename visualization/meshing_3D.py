@@ -14,6 +14,8 @@ Version: 1.1 December 14, 2023 Haoran Chen
         Fix output dir and update color map to 0-1
 Version: 1.2 May 27, 2025 R.F.Murphy
         Trap error in creating triangular meshes
+Version: 1.3 June 1, 2025 Haoran Chen
+        Upgrade get_2D_mesh to handle edge cases with two-point contours
 """
 
 
@@ -63,8 +65,11 @@ def get_indices_pandas(data):
 	return pd.Series(d).groupby(d).apply(f)
 
 # Extract the 2D contours (meshes) from the slices
-def get_2D_mesh(slice_data, level=1.9):
-	return measure.find_contours(slice_data, level=level)
+def get_2D_mesh(slice_data, level=1.9, min_points=3):
+	contours = measure.find_contours(slice_data, level=level)
+	valid_contours = [contour for contour in contours if len(contour) >= min_points]
+	return valid_contours
+
 
 # Convert 2D contours to 3D
 def convert_2D_contour_to_3D(contour, z_value):
