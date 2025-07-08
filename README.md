@@ -1,11 +1,13 @@
 # 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation
 Haoran Chen, Ted Chang, Matthew Ruffalo and Robert F. Murphy\
 Carnegie Mellon University\
-V1.5.3 May 29, 2025
+V1.5.5 July 8, 2025
 
 3DCellComposer is a versatile, open-source software designed as a general solution for 3D cell segmentation. It allows users to choose an existing 2D segmentation model appropriate for their tissue or cell type(s) without requiring any additional training. Moreover, we have enhanced our CellSegmentationEvaluator quality evaluation tool to support 3D images. It allows users to compare and select the most suitable 2D segmentation models for 3D tasks, without the need for human annotations to assess performance.
 
 It is available as a full-featured GitHub repository, and as a python package on PyPi that provides an older, simplified implementation that uses just DeepCell as the 2D segmenter.
+
+Note that using a Linux/Unix/MacOS environment is recommended since execution on Windows systems is reported to be extremely slow.  This is because the GPU package does not work as distributed and therefore CPU processing is used.
 
 Reference: Haoran Chen and Robert F. Murphy (2025) 3DCellComposer - A Versatile Pipeline Utilizing 2D Cell Segmentation Methods for 3D Cell Segmentation. Under review.
 
@@ -16,6 +18,8 @@ Changes in V1.5: Added options for cropping initial image, block-wise voxel down
 Changes in V1.5.2: Improved installation instructions and update environment.yml and requirements.txt.  Updated Cellpose support. Removed use of pint package.
 
 Changes in V1.5.3: Added --min_slices option for specifying the minimum number of slices that a candidate cells must have in order to be considered a matched cell.
+
+Changes in V1.5.5: Added note regarding Windows processing times.
 
 ## Using the repository version
 
